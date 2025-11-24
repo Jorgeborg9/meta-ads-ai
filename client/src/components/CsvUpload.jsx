@@ -556,24 +556,30 @@ const CsvUpload = ({ onDataStatusChange }) => {
     const formData = new FormData()
     formData.append('file', selectedFile)
 
-    const response = await fetch(`${API_BASE_URL}/api/upload`, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    })
+    const uploadUrl = `${API_BASE_URL}/api/upload`
+    console.log('Uploading CSV to:', uploadUrl)
+    try {
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+      })
 
-    if (!response.ok) {
-      throw new Error(`Feil fra server: ${response.status}`)
+      if (!response.ok) {
+        throw new Error(`Feil fra server: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const incomingMetrics = Array.isArray(data.metrics) ? data.metrics : []
+      const incomingRows = Array.isArray(data.rows) ? data.rows : []
+      const rawMetrics = incomingMetrics.length > 0 ? incomingMetrics : incomingRows
+      console.log('Upload response (current period):', data)
+      console.log('Parsed metrics count:', Array.isArray(rawMetrics) ? rawMetrics.length : 0)
+      const transformed = transformUploadedMetrics(rawMetrics)
+      return transformed.length > 0 ? transformed : rawMetrics
+    } catch (error) {
+      console.error('CSV upload failed:', error)
+      throw error
     }
-
-    const data = await response.json()
-    const incomingMetrics = Array.isArray(data.metrics) ? data.metrics : []
-    const incomingRows = Array.isArray(data.rows) ? data.rows : []
-    const rawMetrics = incomingMetrics.length > 0 ? incomingMetrics : incomingRows
-    console.log('Upload response (current period):', data)
-    console.log('Parsed metrics count:', Array.isArray(rawMetrics) ? rawMetrics.length : 0)
-    const transformed = transformUploadedMetrics(rawMetrics)
-    return transformed.length > 0 ? transformed : rawMetrics
   }
 
   const uploadCurrentPeriodFile = async (selectedFile) => {
