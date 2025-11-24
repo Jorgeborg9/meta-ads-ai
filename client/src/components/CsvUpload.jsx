@@ -590,6 +590,30 @@ const CsvUpload = ({ onDataStatusChange }) => {
     }
   }
 
+  const handleUseDemoFile = async () => {
+    try {
+      setStatus('loading')
+      setMessage('Laster demo-fil...')
+      setMetrics([])
+      setSelectedMetric(null)
+      const response = await fetch('/meta-demo.csv')
+      if (!response.ok) {
+        throw new Error('Fant ikke demo-fil')
+      }
+      const blob = await response.blob()
+      const demoFile = new File([blob], 'meta-demo.csv', { type: 'text/csv' })
+      setFile(demoFile)
+      const enrichedMetrics = await uploadCsvFile(demoFile)
+      setStatus('success')
+      setMessage('Demo-fil lastet')
+      setMetrics(enrichedMetrics)
+      setCurrentFileInfo({ name: demoFile.name, rows: enrichedMetrics.length })
+    } catch (error) {
+      setStatus('error')
+      setMessage(error.message || 'Kunne ikke laste demo-fil')
+    }
+  }
+
   const handlePreviousUpload = async () => {
     if (!previousFile) {
       setPreviousUploadMessage('Velg en CSV-fil for forrige periode')
@@ -981,14 +1005,25 @@ const CsvUpload = ({ onDataStatusChange }) => {
         <div className='upload-panel'>
           <p className='upload-title'>Nåværende periode</p>
           <input type='file' accept='.csv' onChange={handleFileChange} />
-          <button
-            type='button'
-            onClick={handleUpload}
-            className='primary-button upload-button'
-            disabled={status === 'loading'}
-          >
-            Last opp CSV
-          </button>
+          <div className='upload-actions'>
+            <button
+              type='button'
+              onClick={handleUpload}
+              className='primary-button upload-button'
+              disabled={status === 'loading'}
+            >
+              Last opp CSV
+            </button>
+            <button
+              type='button'
+              onClick={handleUseDemoFile}
+              className='secondary-button upload-button'
+              disabled={status === 'loading'}
+            >
+              Bruk demo-fil
+            </button>
+          </div>
+          <p className='upload-helper-text'>Har du ikke en fil klar? Bruk demo-fil for å teste verktøyet.</p>
           {message && (
             <p className='upload-status' style={{ color: status === 'error' ? 'red' : 'green' }}>
               {message}

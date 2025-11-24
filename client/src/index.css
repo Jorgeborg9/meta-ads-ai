@@ -172,6 +172,41 @@ main > section:not(:last-child) {
   cursor: not-allowed;
 }
 
+.secondary-button {
+  background: #fdfaf4;
+  color: #111827;
+  padding: 0.55rem 1.3rem;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+}
+
+.secondary-button:hover {
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.15);
+  transform: translateY(-1px);
+}
+
+.secondary-button:active {
+  transform: translateY(0);
+}
+
+.upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.upload-helper-text {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: rgba(17, 24, 39, 0.7);
+}
+
 .pill {
   border-radius: 999px;
   padding: 0.15rem 0.8rem;
