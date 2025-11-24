@@ -9,9 +9,6 @@ const Home = () => {
   return (
     <main>
       <section style={{ marginBottom: '2rem' }}>
-        <p style={{ color: '#f3f4f6', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
-          Meta Ads AI
-        </p>
         <div className="hero-top-row">
           <h1 style={{ fontSize: '2.5rem', margin: '0.5rem 0 0', color: '#fdfaf5' }}>
             MVP-dashboard for smarter kampanjeinnsikt <span className="beta-badge">Beta</span>

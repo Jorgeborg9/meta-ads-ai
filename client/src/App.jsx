@@ -7,7 +7,13 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="topbar-logo">InsightAdsAI</div>
+        <div className="top-logo">
+          <img
+            src="/Logo-White.png"
+            alt="InsightAdsAI logo"
+            className="top-logo-img"
+          />
+        </div>
         <SignedIn>
           <UserButton />
         </SignedIn>

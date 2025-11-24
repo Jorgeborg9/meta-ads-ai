@@ -2,6 +2,8 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { createPortal } from 'react-dom'
 
 const ANALYSIS_SETTINGS_KEY = 'metaAdsAnalysisSettings'
+const DEMO_CSV_URL = `${import.meta.env.BASE_URL || '/'}meta-demo.csv`
+const DEMO_CSV_URL_PREVIOUS = `${import.meta.env.BASE_URL || '/'}meta-demo2.csv`
 
 const loadAnalysisSettings = () => {
   if (typeof window === 'undefined') return null
@@ -616,6 +618,26 @@ const CsvUpload = ({ onDataStatusChange }) => {
     }
   }
 
+  const handleUseDemoFilePrevious = async () => {
+    try {
+      console.log('Laster demo fra:', DEMO_CSV_URL_PREVIOUS)
+      const response = await fetch(DEMO_CSV_URL_PREVIOUS)
+      if (!response.ok) {
+        throw new Error('Fant ikke demo-fil')
+      }
+      const blob = await response.blob()
+      const demoFile = new File([blob], 'meta-demo2.csv', { type: 'text/csv' })
+      setPreviousFile(demoFile)
+      setPreviousUploadMessage('Laster opp...')
+      const enrichedMetrics = await uploadCsvFile(demoFile)
+      setPreviousMetrics(enrichedMetrics)
+      setPreviousFileInfo({ name: demoFile.name, rows: enrichedMetrics.length })
+      setPreviousUploadMessage('Opplasting vellykket')
+    } catch (error) {
+      setPreviousUploadMessage(error.message || 'Kunne ikke laste demo-fil for forrige periode')
+    }
+  }
+
   const handlePreviousUpload = async () => {
     if (!previousFile) {
       setPreviousUploadMessage('Velg en CSV-fil for forrige periode')
@@ -1040,9 +1062,19 @@ const CsvUpload = ({ onDataStatusChange }) => {
         <div className='upload-panel'>
           <p className='upload-title'>Forrige periode (valgfritt)</p>
           <input type='file' accept='.csv' onChange={handlePreviousFileChange} />
-          <button type='button' onClick={handlePreviousUpload} className='primary-button upload-button'>
-            Last opp forrige periode
-          </button>
+          <div className='upload-actions'>
+            <button type='button' onClick={handlePreviousUpload} className='primary-button upload-button'>
+              Last opp forrige periode
+            </button>
+            <button
+              type='button'
+              onClick={handleUseDemoFilePrevious}
+              className='secondary-button upload-button'
+              disabled={status === 'loading'}
+            >
+              Bruk demo-fil
+            </button>
+          </div>
           {previousUploadMessage && <p className='upload-status'>{previousUploadMessage}</p>}
           {previousFileInfo && (
             <p className='upload-info'>
@@ -1388,7 +1420,7 @@ const CsvUpload = ({ onDataStatusChange }) => {
                               <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
                                 {metric.adSetName || '-'}
                               </td>
-                              <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
+                              <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }} className='currency-cell'>
                                 {formatCurrency(metric.amountSpent)}
                               </td>
                               <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
@@ -1408,7 +1440,7 @@ const CsvUpload = ({ onDataStatusChange }) => {
                                   )}
                                 </div>
                               </td>
-                              <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
+                              <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }} className='currency-cell'>
                                 {metric.cpa === null ? '-' : formatCurrency(metric.cpa)}
                               </td>
                               <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
@@ -1545,13 +1577,13 @@ const CsvUpload = ({ onDataStatusChange }) => {
                             <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
                               {adSet.adCount}
                             </td>
-                            <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
+                            <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }} className='currency-cell'>
                               {formatCurrency(adSet.amountSpent)}
                             </td>
                             <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
                               {adSet.purchases}
                             </td>
-                            <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
+                            <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }} className='currency-cell'>
                               {adSet.purchases > 0 ? formatCurrency(adSet.cpa) : 'N/A'}
                             </td>
                             <td style={{ borderBottom: '1px solid #f0f0f0', padding: '0.5rem' }}>
@@ -1584,4 +1616,3 @@ const CsvUpload = ({ onDataStatusChange }) => {
 }
 
 export default CsvUpload
-const DEMO_CSV_URL = `${import.meta.env.BASE_URL || '/'}meta-demo.csv`
