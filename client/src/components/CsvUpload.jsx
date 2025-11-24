@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { createPortal } from 'react-dom'
 
 const ANALYSIS_SETTINGS_KEY = 'metaAdsAnalysisSettings'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const DEMO_CSV_URL = `${import.meta.env.BASE_URL || '/'}meta-demo.csv`
 const DEMO_CSV_URL_PREVIOUS = `${import.meta.env.BASE_URL || '/'}meta-demo2.csv`
 
@@ -555,9 +556,10 @@ const CsvUpload = ({ onDataStatusChange }) => {
     const formData = new FormData()
     formData.append('file', selectedFile)
 
-    const response = await fetch('http://localhost:4000/api/upload', {
+    const response = await fetch(`${API_BASE_URL}/api/upload`, {
       method: 'POST',
       body: formData,
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -587,8 +589,9 @@ const CsvUpload = ({ onDataStatusChange }) => {
       setMetrics(enrichedMetrics)
       setCurrentFileInfo({ name: selectedFile.name, rows: enrichedMetrics.length })
     } catch (error) {
+      console.error('Upload failed:', error)
       setStatus('error')
-      setMessage(error.message || 'Noe gikk galt')
+      setMessage(error.message || 'Opplasting feilet. Prøv igjen, og sjekk API-tilgang.')
     }
   }
 
@@ -613,6 +616,7 @@ const CsvUpload = ({ onDataStatusChange }) => {
       setFile(demoFile)
       await uploadCurrentPeriodFile(demoFile)
     } catch (error) {
+      console.error('Demo upload failed:', error)
       setStatus('error')
       setMessage(error.message || 'Kunne ikke laste demo-fil')
     }
@@ -628,13 +632,24 @@ const CsvUpload = ({ onDataStatusChange }) => {
       const blob = await response.blob()
       const demoFile = new File([blob], 'meta-demo2.csv', { type: 'text/csv' })
       setPreviousFile(demoFile)
-      setPreviousUploadMessage('Laster opp...')
-      const enrichedMetrics = await uploadCsvFile(demoFile)
+      await uploadPreviousPeriodFile(demoFile)
+    } catch (error) {
+      console.error('Previous period demo upload failed:', error)
+      setPreviousUploadMessage(error.message || 'Kunne ikke laste demo-fil for forrige periode')
+    }
+  }
+
+  const uploadPreviousPeriodFile = async (selectedFile) => {
+    console.log('Uploading previous period file:', selectedFile.name, selectedFile.size)
+    setPreviousUploadMessage('Laster opp...')
+    try {
+      const enrichedMetrics = await uploadCsvFile(selectedFile)
       setPreviousMetrics(enrichedMetrics)
-      setPreviousFileInfo({ name: demoFile.name, rows: enrichedMetrics.length })
+      setPreviousFileInfo({ name: selectedFile.name, rows: enrichedMetrics.length })
       setPreviousUploadMessage('Opplasting vellykket')
     } catch (error) {
-      setPreviousUploadMessage(error.message || 'Kunne ikke laste demo-fil for forrige periode')
+      console.error('Previous period upload failed:', error)
+      setPreviousUploadMessage(error.message || 'Opplasting feilet. Prøv igjen.')
     }
   }
 
@@ -644,15 +659,7 @@ const CsvUpload = ({ onDataStatusChange }) => {
       return
     }
 
-    try {
-      setPreviousUploadMessage('Laster opp...')
-      const enrichedMetrics = await uploadCsvFile(previousFile)
-      setPreviousMetrics(enrichedMetrics)
-      setPreviousFileInfo({ name: previousFile.name, rows: enrichedMetrics.length })
-      setPreviousUploadMessage('Opplasting vellykket')
-    } catch (error) {
-      setPreviousUploadMessage(error.message || 'Noe gikk galt ved opplasting')
-    }
+    await uploadPreviousPeriodFile(previousFile)
   }
 
   const handleNumericFilterChange = (setter) => (event) => {
