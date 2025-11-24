@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 
 const HealthCheck = () => {
@@ -12,11 +12,11 @@ const HealthCheck = () => {
 
     const fetchHealth = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/status`);
-        if (!response.ok) {
-          throw new Error(`Uventet status: ${response.status}`)
+        const res = await fetch(`${API_BASE_URL}/status`)
+        if (!res.ok) {
+          throw new Error(`Uventet status: ${res.status}`)
         }
-        const data = await response.json()
+        const data = await res.json()
         if (isMounted) {
           setStatus(data.status ?? 'ukjent')
         }

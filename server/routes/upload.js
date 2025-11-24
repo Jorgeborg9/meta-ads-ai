@@ -23,20 +23,52 @@ router.post('/upload', upload.single('file'), (req, res) => {
       rows.push(row)
     })
     .on('end', () => {
+      const normalizeKey = (key) =>
+        String(key || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '')
+
+      const getFirst = (obj, keys) => {
+        const normalized = {}
+        for (const originalKey of Object.keys(obj)) {
+          normalized[normalizeKey(originalKey)] = obj[originalKey]
+        }
+        for (const key of keys) {
+          const candidate = normalized[normalizeKey(key)]
+          if (candidate !== undefined && candidate !== null && candidate !== '') {
+            return candidate
+          }
+        }
+        return ''
+      }
+
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return 0
+        if (typeof value === 'number') return value
+        const cleaned = String(value).replace(/[^0-9,.\-]/g, '').replace(',', '.')
+        const num = parseFloat(cleaned)
+        return Number.isNaN(num) ? 0 : num
+      }
+
+      const toInt = (value) => {
+        const n = toNumber(value)
+        return Number.isFinite(n) ? Math.round(n) : 0
+      }
+
       const metrics = rows.map((row) => {
-        const reach = parseInt(row['Reach'], 10) || 0
-        const impressions = parseInt(row['Impressions'], 10) || 0
-        const frequency = parseFloat(row['Frequency']) || 0
-        const cpm = parseFloat(row['CPM (cost per 1,000 impressions) (NOK)']) || 0
-        const costPerResult = parseFloat(row['Cost per results']) || 0
-        const purchases = parseInt(row['Purchases'], 10) || 0
-        const roas = parseFloat(row['Purchase ROAS (return on ad spend)']) || 0
-        const amountSpent = parseFloat(row['Amount spent (NOK)']) || 0
+        const reach = toInt(getFirst(row, ['Reach']))
+        const impressions = toInt(getFirst(row, ['Impressions']))
+        const frequency = toNumber(getFirst(row, ['Frequency']))
+        const cpm = toNumber(getFirst(row, ['CPM (cost per 1,000 impressions) (NOK)', 'CPM']))
+        const costPerResult = toNumber(getFirst(row, ['Cost per results']))
+        const purchases = toInt(getFirst(row, ['Purchases', 'Results']))
+        const roas = toNumber(getFirst(row, ['Purchase ROAS (return on ad spend)', 'ROAS']))
+        const amountSpent = toNumber(getFirst(row, ['Amount spent (NOK)', 'Amount spent']))
         const cpa = purchases > 0 ? amountSpent / purchases : null
 
         return {
-          adName: row['Ad name'] || '',
-          adSetName: row['Ad set name'] || '',
+          adName: getFirst(row, ['Ad name']),
+          adSetName: getFirst(row, ['Ad set name', 'Ad set']),
           reach,
           impressions,
           frequency,

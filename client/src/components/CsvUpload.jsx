@@ -563,7 +563,31 @@ const CsvUpload = ({ onDataStatusChange }) => {
     }
 
     const data = await response.json()
-    return transformUploadedMetrics(data.metrics || [])
+    const incomingMetrics = Array.isArray(data.metrics) ? data.metrics : []
+    const incomingRows = Array.isArray(data.rows) ? data.rows : []
+    const rawMetrics = incomingMetrics.length > 0 ? incomingMetrics : incomingRows
+    console.log('Upload response (current period):', data)
+    console.log('Parsed metrics count:', Array.isArray(rawMetrics) ? rawMetrics.length : 0)
+    const transformed = transformUploadedMetrics(rawMetrics)
+    return transformed.length > 0 ? transformed : rawMetrics
+  }
+
+  const uploadCurrentPeriodFile = async (selectedFile) => {
+    console.log('Uploading current period file:', selectedFile.name, selectedFile.size)
+    setStatus('loading')
+    setMessage('Laster opp...')
+    setMetrics([])
+    setSelectedMetric(null)
+    try {
+      const enrichedMetrics = await uploadCsvFile(selectedFile)
+      setStatus('success')
+      setMessage('Opplasting vellykket')
+      setMetrics(enrichedMetrics)
+      setCurrentFileInfo({ name: selectedFile.name, rows: enrichedMetrics.length })
+    } catch (error) {
+      setStatus('error')
+      setMessage(error.message || 'Noe gikk galt')
+    }
   }
 
   const handleUpload = async () => {
@@ -572,42 +596,20 @@ const CsvUpload = ({ onDataStatusChange }) => {
       setMessage('Velg en CSV-fil først')
       return
     }
-
-    setStatus('loading')
-    setMessage('Laster opp...')
-    setMetrics([])
-    setSelectedMetric(null)
-
-    try {
-      const enrichedMetrics = await uploadCsvFile(file)
-      setStatus('success')
-      setMessage('Opplasting vellykket')
-      setMetrics(enrichedMetrics)
-      setCurrentFileInfo({ name: file.name, rows: enrichedMetrics.length })
-    } catch (error) {
-      setStatus('error')
-      setMessage(error.message || 'Noe gikk galt')
-    }
+    await uploadCurrentPeriodFile(file)
   }
 
   const handleUseDemoFile = async () => {
     try {
-      setStatus('loading')
-      setMessage('Laster demo-fil...')
-      setMetrics([])
-      setSelectedMetric(null)
-      const response = await fetch('/meta-demo.csv')
+      console.log('Laster demo fra:', DEMO_CSV_URL)
+      const response = await fetch(DEMO_CSV_URL)
       if (!response.ok) {
         throw new Error('Fant ikke demo-fil')
       }
       const blob = await response.blob()
       const demoFile = new File([blob], 'meta-demo.csv', { type: 'text/csv' })
       setFile(demoFile)
-      const enrichedMetrics = await uploadCsvFile(demoFile)
-      setStatus('success')
-      setMessage('Demo-fil lastet')
-      setMetrics(enrichedMetrics)
-      setCurrentFileInfo({ name: demoFile.name, rows: enrichedMetrics.length })
+      await uploadCurrentPeriodFile(demoFile)
     } catch (error) {
       setStatus('error')
       setMessage(error.message || 'Kunne ikke laste demo-fil')
@@ -1582,3 +1584,4 @@ const CsvUpload = ({ onDataStatusChange }) => {
 }
 
 export default CsvUpload
+const DEMO_CSV_URL = `${import.meta.env.BASE_URL || '/'}meta-demo.csv`
