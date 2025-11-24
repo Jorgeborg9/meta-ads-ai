@@ -17,3 +17,10 @@ app.use('/api', uploadRouter);
 app.listen(PORT, () => {
   console.log(`Server kjører på port ${PORT}`);
 });
+app.get('/status', (req, res) => {
+  res.json({ status: 'ok' });
+});
+app.get('/', (req, res) => {
+  res.send('Insight Ads AI API is running');
+});
+
