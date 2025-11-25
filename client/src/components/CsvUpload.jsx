@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useData } from '../context/DataContext'
 
 const ANALYSIS_SETTINGS_KEY = 'metaAdsAnalysisSettings'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
@@ -489,16 +490,26 @@ const sortAccessors = {
   performanceScore: (metric) => Number(metric.performanceScore) || 0,
 }
 
-const CsvUpload = ({ onDataStatusChange }) => {
+const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
   const initialSettings = useMemo(() => loadAnalysisSettings(), [])
+  const {
+    currentAds,
+    setCurrentAds,
+    previousAds,
+    setPreviousAds,
+    currentFileInfo,
+    setCurrentFileInfo,
+    previousFileInfo,
+    setPreviousFileInfo,
+    setLoading,
+    setError,
+  } = useData()
+  const metrics = currentAds || []
+  const previousMetrics = previousAds || []
   const [file, setFile] = useState(null)
   const [previousFile, setPreviousFile] = useState(null)
   const [status, setStatus] = useState('idle')
   const [message, setMessage] = useState('')
-  const [metrics, setMetrics] = useState([])
-  const [previousMetrics, setPreviousMetrics] = useState([])
-  const [currentFileInfo, setCurrentFileInfo] = useState(null)
-  const [previousFileInfo, setPreviousFileInfo] = useState(null)
   const [previousUploadMessage, setPreviousUploadMessage] = useState('')
   const [selectedMetric, setSelectedMetric] = useState(null)
   const [minRoas, setMinRoas] = useState(() => initialSettings?.minRoas ?? '')
@@ -542,7 +553,7 @@ const CsvUpload = ({ onDataStatusChange }) => {
     setFile(selectedFile ?? null)
     setStatus('idle')
     setMessage('')
-    setMetrics([])
+    setCurrentAds([])
     setCurrentFileInfo(null)
     setSelectedMetric(null)
   }
@@ -586,13 +597,14 @@ const CsvUpload = ({ onDataStatusChange }) => {
     console.log('Uploading current period file:', selectedFile.name, selectedFile.size)
     setStatus('loading')
     setMessage('Laster opp...')
-    setMetrics([])
+    setCurrentAds([])
     setSelectedMetric(null)
     try {
       const enrichedMetrics = await uploadCsvFile(selectedFile)
       setStatus('success')
       setMessage('Opplasting vellykket')
-      setMetrics(enrichedMetrics)
+      setCurrentAds(enrichedMetrics)
+      console.log('CsvUpload: setting currentAds in context:', enrichedMetrics)
       setCurrentFileInfo({ name: selectedFile.name, rows: enrichedMetrics.length })
     } catch (error) {
       console.error('Upload failed:', error)
@@ -650,7 +662,7 @@ const CsvUpload = ({ onDataStatusChange }) => {
     setPreviousUploadMessage('Laster opp...')
     try {
       const enrichedMetrics = await uploadCsvFile(selectedFile)
-      setPreviousMetrics(enrichedMetrics)
+      setPreviousAds(enrichedMetrics)
       setPreviousFileInfo({ name: selectedFile.name, rows: enrichedMetrics.length })
       setPreviousUploadMessage('Opplasting vellykket')
     } catch (error) {
@@ -1096,13 +1108,13 @@ const CsvUpload = ({ onDataStatusChange }) => {
           )}
         </div>
       </div>
-      {!hasCurrentData && (
+      {!hideAnalysis && !hasCurrentData && (
         <div className='card empty-state-card'>
           <h3>Ingen data lastet opp enda</h3>
           <p>Last opp en Meta Ads-CSV øverst for å starte analysen.</p>
         </div>
       )}
-      {status === 'success' && (
+      {!hideAnalysis && status === 'success' && (
         <div className='analysis-section'>
           <h2 className='section-title'>Analyserte annonser</h2>
             <div className='controls-card'>

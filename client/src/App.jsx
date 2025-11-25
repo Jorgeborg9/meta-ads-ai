@@ -1,7 +1,10 @@
 import { Routes, Route } from 'react-router-dom'
 import { RedirectToSignIn, SignIn, SignUp, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react'
-import Home from './pages/Home'
-import Dashboard from './Dashboard'
+import DetailedView from './pages/DetailedView'
+import UploadPage from './pages/UploadPage'
+import CreativesPage from './pages/CreativesPage'
+import ActionsPage from './pages/ActionsPage'
+import SettingsPage from './pages/SettingsPage'
 
 function App() {
   return (
@@ -23,11 +26,76 @@ function App() {
           <Route path="/sign-in/*" element={<SignIn routing="path" path="/sign-in" />} />
           <Route path="/sign-up/*" element={<SignUp routing="path" path="/sign-up" />} />
           <Route
-            path="/*"
+            path="/upload"
             element={
               <>
                 <SignedIn>
-                  <Dashboard />
+                  <UploadPage />
+                </SignedIn>
+                <SignedOut>
+                  <RedirectToSignIn />
+                </SignedOut>
+              </>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <>
+                <SignedIn>
+                  <DetailedView />
+                </SignedIn>
+                <SignedOut>
+                  <RedirectToSignIn />
+                </SignedOut>
+              </>
+            }
+          />
+          <Route
+            path="/detailed"
+            element={
+              <>
+                <SignedIn>
+                  <DetailedView />
+                </SignedIn>
+                <SignedOut>
+                  <RedirectToSignIn />
+                </SignedOut>
+              </>
+            }
+          />
+          <Route
+            path="/creatives"
+            element={
+              <>
+                <SignedIn>
+                  <CreativesPage />
+                </SignedIn>
+                <SignedOut>
+                  <RedirectToSignIn />
+                </SignedOut>
+              </>
+            }
+          />
+          <Route
+            path="/actions"
+            element={
+              <>
+                <SignedIn>
+                  <ActionsPage />
+                </SignedIn>
+                <SignedOut>
+                  <RedirectToSignIn />
+                </SignedOut>
+              </>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <>
+                <SignedIn>
+                  <SettingsPage />
                 </SignedIn>
                 <SignedOut>
                   <RedirectToSignIn />
