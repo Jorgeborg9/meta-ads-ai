@@ -1,3 +1,4 @@
+import { UserButton } from '@clerk/clerk-react'
 import { NavLink } from 'react-router-dom'
 
 const AppShell = ({ activeTab = 'detailed', children, showTabs = true }) => {
@@ -12,6 +13,12 @@ const AppShell = ({ activeTab = 'detailed', children, showTabs = true }) => {
   return (
     <div className="detailed-page">
       <aside className="detailed-sidebar">
+        <div className="sidebar-profile">
+          <div className="profile-avatar">
+            <UserButton />
+          </div>
+          <div className="profile-text">Profil</div>
+        </div>
         <nav className="sidebar-nav">
           {sidebarItems.map((item) => (
             <NavLink
@@ -23,6 +30,9 @@ const AppShell = ({ activeTab = 'detailed', children, showTabs = true }) => {
             </NavLink>
           ))}
         </nav>
+        <div className="sidebar-footer">
+          <img src="/Logo-White.png" alt="InsightAdsAI logo" className="sidebar-logo-img" />
+        </div>
       </aside>
 
       <main className="detailed-main">
@@ -47,7 +57,7 @@ const AppShell = ({ activeTab = 'detailed', children, showTabs = true }) => {
           </div>
         )}
 
-        {children}
+        <div className="main-container">{children}</div>
       </main>
     </div>
   )

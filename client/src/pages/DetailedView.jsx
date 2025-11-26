@@ -10,48 +10,290 @@ const ratingColor = {
   Poor: 'badge-danger',
 }
 
-const deriveRating = (ad) => {
-  if (ad.filePerformanceBucket) return ad.filePerformanceBucket
-  const roasVal = Number(ad.roas) || 0
-  if (roasVal >= 2.5) return 'Winner'
-  if (roasVal >= 1.2) return 'Average'
-  return 'Poor'
+const getPerformanceBucket = (ad) => {
+  const raw =
+    ad.performanceBucket || ad.performanceLabel || ad.performance || ad.filePerformanceBucket || ''
+  const value = String(raw).toLowerCase().trim()
+  if (value.includes('winner')) return 'Winner'
+  if (value.includes('average')) return 'Average'
+  if (value.includes('poor')) return 'Poor'
+  return null
 }
+
+const getPerformanceRank = (ad) => {
+  const bucket = getPerformanceBucket(ad)
+  if (bucket === 'Winner') return 3
+  if (bucket === 'Average') return 2
+  if (bucket === 'Poor') return 1
+  return 0
+}
+
+const deriveRating = (ad) => getPerformanceBucket(ad) || 'Unknown'
+
+const percentDiff = (value, baseline) => {
+  if (!baseline || baseline === 0 || value == null) return null
+  const diff = ((value - baseline) / baseline) * 100
+  return Number.isFinite(diff) ? diff : null
+}
+
+const getAdId = (ad) => ad.id || ad.ad_id || `${ad.adName || 'ad'}-${ad.adSetName || ad.adSet || 'set'}`
 
 const DetailedView = () => {
   const navigate = useNavigate()
-  const { currentAds, loading, error } = useData()
+  const { currentAds } = useData()
   const ads = currentAds || []
-  console.log('DetailedView: currentAds from context:', ads)
 
-  const [selectedId, setSelectedId] = useState(null)
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' })
   const [performanceFilter, setPerformanceFilter] = useState('all')
+  const [selectedId, setSelectedId] = useState(null)
+  const [expandedGroups, setExpandedGroups] = useState({
+    winners: false,
+    steady: false,
+    needsCare: false,
+  })
 
-  const filteredAds = useMemo(() => {
+  const parseMetricNumber = (value) => {
+    if (value == null) return 0
+    if (typeof value === 'number') return value
+    const cleaned = String(value)
+      .replace(/\s/g, '')
+      .replace(/kr/gi, '')
+      .replace(/%/g, '')
+      .replace(',', '.')
+    const num = Number(cleaned)
+    return Number.isFinite(num) ? num : 0
+  }
+
+  const averageMetrics = useMemo(() => {
+    if (!ads.length) {
+      return {
+        avgRoas: null,
+        avgCpa: null,
+        avgCtr: null,
+        totalSpend: 0,
+        totalPurchases: 0,
+        strongestAd: null,
+      }
+    }
+
+    let roasSum = 0
+    let roasCount = 0
+    let cpaSum = 0
+    let cpaCount = 0
+    let ctrSum = 0
+    let ctrCount = 0
+    let totalSpend = 0
+    let totalPurchases = 0
+
+    ads.forEach((ad) => {
+      const roasVal = parseMetricNumber(ad.roas)
+      if (Number.isFinite(roasVal) && roasVal > 0) {
+        roasSum += roasVal
+        roasCount += 1
+      }
+      const cpaVal = parseMetricNumber(ad.cpa ?? ad.cpr)
+      if (Number.isFinite(cpaVal) && cpaVal > 0) {
+        cpaSum += cpaVal
+        cpaCount += 1
+      }
+      const ctrVal = parseMetricNumber(ad.ctr)
+      if (Number.isFinite(ctrVal) && ctrVal >= 0) {
+        ctrSum += ctrVal
+        ctrCount += 1
+      }
+      totalSpend += parseMetricNumber(ad.amountSpent)
+      totalPurchases += parseMetricNumber(ad.purchases ?? ad.results)
+    })
+
+    const avgRoas = roasCount ? roasSum / roasCount : null
+    const avgCpa = cpaCount ? cpaSum / cpaCount : null
+    const avgCtr = ctrCount ? ctrSum / ctrCount : null
+
+    const validRoasAds = ads.filter((ad) => Number.isFinite(parseMetricNumber(ad.roas)))
+    const strongestAd = validRoasAds.length
+      ? validRoasAds.reduce((best, ad) =>
+          parseMetricNumber(ad.roas) > parseMetricNumber(best.roas) ? ad : best,
+        )
+      : null
+
+    return { avgRoas, avgCpa, avgCtr, totalSpend, totalPurchases, strongestAd }
+  }, [ads])
+
+  const visibleAds = useMemo(() => {
     if (!ads.length) return []
-    if (performanceFilter === 'all') return ads
-    return ads.filter((ad) => deriveRating(ad).toLowerCase() === performanceFilter)
-  }, [ads, performanceFilter])
+    const filtered = ads.filter((ad) => {
+      if (performanceFilter === 'all') return true
+      const bucket = getPerformanceBucket(ad)
+      if (performanceFilter === 'winner') return bucket === 'Winner'
+      if (performanceFilter === 'average') return bucket === 'Average'
+      if (performanceFilter === 'poor') return bucket === 'Poor'
+      return true
+    })
+
+    const { key, direction } = sortConfig
+    if (!key) return filtered
+
+    const sorted = [...filtered].sort((a, b) => {
+      const getValue = (ad) => {
+        switch (key) {
+          case 'results':
+            return parseMetricNumber(ad.purchases ?? ad.results)
+          case 'cpr':
+            return parseMetricNumber(ad.cpr ?? ad.cpa)
+          case 'roas':
+            return parseMetricNumber(ad.roas)
+          case 'ctr':
+            return parseMetricNumber(ad.ctr)
+          case 'performance':
+            return getPerformanceRank(ad)
+          case 'name':
+            return String(ad.name || ad.adName || '')
+          default:
+            return 0
+        }
+      }
+      const aVal = getValue(a)
+      const bVal = getValue(b)
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return direction === 'desc' ? bVal - aVal : aVal - bVal
+      }
+      const cmp = String(aVal).localeCompare(String(bVal), 'nb', { sensitivity: 'base' })
+      return direction === 'desc' ? -cmp : cmp
+    })
+
+    return sorted
+  }, [ads, performanceFilter, sortConfig])
 
   useEffect(() => {
-    if (filteredAds.length > 0 && !selectedId) {
-      const first = filteredAds[0]
-      const firstId = first.id || `${first.adName}-${first.adSetName || first.adSet}`
-      setSelectedId(firstId)
+    if (visibleAds.length > 0 && !selectedId) {
+      setSelectedId(getAdId(visibleAds[0]))
     }
-    if (filteredAds.length === 0 && selectedId) {
+    if (visibleAds.length === 0 && selectedId) {
       setSelectedId(null)
     }
-  }, [filteredAds, selectedId])
+  }, [visibleAds, selectedId])
 
   const selectedAd = useMemo(() => {
-    if (!filteredAds.length) return null
-    return (
-      filteredAds.find((ad) => ad.id === selectedId) ||
-      filteredAds.find((ad) => `${ad.adName}-${ad.adSetName || ad.adSet}` === selectedId) ||
-      filteredAds[0]
-    )
-  }, [filteredAds, selectedId])
+    if (!visibleAds.length) return null
+    return visibleAds.find((ad) => getAdId(ad) === selectedId) || visibleAds[0]
+  }, [visibleAds, selectedId])
+
+  const selectedStats = useMemo(() => {
+    if (!selectedAd) return null
+    const roas = parseMetricNumber(selectedAd.roas)
+    const cpa = parseMetricNumber(selectedAd.cpa ?? selectedAd.cpr)
+    const ctr = parseMetricNumber(selectedAd.ctr)
+
+    const roasDiff = percentDiff(roas, averageMetrics.avgRoas)
+    const cpaDiff = percentDiff(cpa, averageMetrics.avgCpa)
+    const ctrDiff = percentDiff(ctr, averageMetrics.avgCtr)
+
+    const bucket = deriveRating(selectedAd)
+
+    return { roas, cpa, ctr, roasDiff, cpaDiff, ctrDiff, bucket }
+  }, [selectedAd, averageMetrics])
+
+  const insightBullets = useMemo(() => {
+    if (!selectedStats) return []
+    const bullets = []
+    if (selectedStats.bucket === 'Winner') {
+      bullets.push('Denne annonsen er klassifisert som en vinner blant kampanjens annonser.')
+    }
+    if (selectedStats.roasDiff != null) {
+      if (selectedStats.roasDiff > 15) {
+        bullets.push('ROAS er høyere enn snittet for kampanjen.')
+      } else if (selectedStats.roasDiff < -15) {
+        bullets.push('ROAS er lavere enn snittet. Resultatene ligger under de sterkeste annonsene.')
+      }
+    }
+    if (selectedStats.ctrDiff != null) {
+      if (selectedStats.ctrDiff > 10) {
+        bullets.push('CTR er høyere enn snittet, annonsen fanger oppmerksomhet godt.')
+      } else if (selectedStats.ctrDiff < -10) {
+        bullets.push('CTR er lavere enn snittet, den får mindre oppmerksomhet enn andre annonser.')
+      }
+    }
+    if (selectedStats.ctrDiff != null && selectedStats.roasDiff != null) {
+      if (selectedStats.ctrDiff > 5 && selectedStats.roasDiff < -5) {
+        bullets.push('CTR er over snittet, men ROAS er lavere. Utfordringen kan ligge etter klikk.')
+      }
+    }
+    if (!bullets.length) {
+      bullets.push('Ytelsen ligger i nærheten av kampanjesnittet på nøkkeltallene.')
+    }
+    return bullets.slice(0, 4)
+  }, [selectedStats])
+
+  const actionBullets = useMemo(() => {
+    if (!selectedStats) return []
+    const bullets = []
+    if (selectedStats.roasDiff != null && selectedStats.roasDiff < -10) {
+      bullets.push('Se nærmere på målgruppe eller tilbud dersom ROAS ligger under snittet.')
+    } else if (selectedStats.roasDiff != null && selectedStats.roasDiff > 10) {
+      bullets.push('Analyser hva som skiller denne annonsen fra andre med lavere ROAS for læring.')
+    }
+    if (selectedStats.ctrDiff != null && selectedStats.ctrDiff < -10) {
+      bullets.push('Ved lav CTR kan det være relevant å teste variasjoner i budskap eller kreativt uttrykk.')
+    }
+    if (
+      selectedStats.ctrDiff != null &&
+      selectedStats.ctrDiff > 5 &&
+      selectedStats.roasDiff != null &&
+      selectedStats.roasDiff < 0
+    ) {
+      bullets.push('Når CTR er høy men ROAS er svakere, kan utfordringen ligge på landingssiden eller kjøpsflyten.')
+    }
+    if (selectedStats.bucket === 'Winner') {
+      bullets.push('For vinner-annonser kan det være nyttig å hente læring til nye varianter.')
+    }
+    if (!bullets.length) {
+      bullets.push('Ytelsen er nær snittet. Følg med på utviklingen og vurder små justeringer ved behov.')
+    }
+    return bullets.slice(0, 4)
+  }, [selectedStats])
+
+  const groupedAds = useMemo(() => {
+    const winners = []
+    const steady = []
+    const needsCare = []
+    const avgRoas = averageMetrics.avgRoas
+    ads.forEach((ad) => {
+      const bucket = getPerformanceBucket(ad)
+      const roasVal = parseMetricNumber(ad.roas)
+      const isWinner = bucket === 'Winner' || (avgRoas ? roasVal > avgRoas * 1.1 : false)
+      const isPoor = bucket === 'Poor' || (avgRoas ? roasVal < avgRoas * 0.9 : false)
+      if (isWinner) {
+        winners.push(ad)
+        return
+      }
+      if (isPoor) {
+        needsCare.push(ad)
+        return
+      }
+      steady.push(ad)
+    })
+    return { winners, steady, needsCare }
+  }, [ads, averageMetrics.avgRoas])
+
+  const handleSelectAdFromGroup = (ad) => {
+    const id = getAdId(ad)
+    setSelectedId(id)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const toggleGroup = (key) => {
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        const nextDirection = prev.direction === 'desc' ? 'asc' : 'desc'
+        return { key, direction: nextDirection }
+      }
+      return { key, direction: 'desc' }
+    })
+  }
 
   if (!ads.length) {
     return (
@@ -80,66 +322,199 @@ const DetailedView = () => {
 
   return (
     <AppShell activeTab="detailed" showTabs={false}>
-      <PageHeader performanceFilter={performanceFilter} setPerformanceFilter={setPerformanceFilter} />
+      <PageHeader />
 
-      <div className="detail-columns">
-        <div className="detail-left">
-          <div className="card ai-summary-card">
-            <p className="eyebrow">AI Summary</p>
-            <h3>Oppnå raskere lønnsomhet</h3>
-            <ul>
-              <li>Flytt 20% av budsjettet fra svake annonser til vinnerne.</li>
-              <li>Øk budsjett på sterkeste annonse med 15% de neste 3 dagene.</li>
-              <li>Test en ny video-variant med tydelig CTA for retargeting.</li>
-            </ul>
+      <div className="top-grid">
+        <div className="top-left">
+          <div className="card selected-ad-card">
+            <p className="eyebrow">Totaloversikt</p>
+            <div className="kpi-row">
+              <div className="kpi-chip">
+                <div className="kpi-value">{averageMetrics.totalSpend.toLocaleString('nb-NO')} kr</div>
+                <div className="kpi-label">Total spend</div>
+              </div>
+              <div className="kpi-chip">
+                <div className="kpi-value">{averageMetrics.totalPurchases.toLocaleString('nb-NO')}</div>
+                <div className="kpi-label">Totale kjøp</div>
+              </div>
+              <div className="kpi-chip">
+                <div className="kpi-value">{averageMetrics.avgRoas == null ? '—' : averageMetrics.avgRoas.toFixed(2)}</div>
+                <div className="kpi-label">ROAS snitt</div>
+              </div>
+              <div className="kpi-chip">
+                <div className="kpi-value">{averageMetrics.avgCpa == null ? '—' : `${averageMetrics.avgCpa.toLocaleString('nb-NO')} kr`}</div>
+                <div className="kpi-label">CPA snitt</div>
+              </div>
+              <div className="kpi-chip">
+                <div className="kpi-value">{averageMetrics.avgCtr == null ? '—' : `${averageMetrics.avgCtr.toFixed(2)} %`}</div>
+                <div className="kpi-label">CTR snitt</div>
+              </div>
+            </div>
+            {ads.length > 0 && (
+              <p className="kpi-footnote">Basert på {ads.length} annonser i kampanjen.</p>
+            )}
           </div>
 
-          <div className="card ads-list-card">
-            <div className="ads-list-header">
-              <p className="eyebrow" style={{ marginBottom: '0.15rem' }}>
-                ADS
-              </p>
-              <h3>Annonser</h3>
-            </div>
-            <div className="ads-list-scroll">
-              {filteredAds.map((ad) => {
-                const id = ad.id || `${ad.adName}-${ad.adSetName || ad.adSet}`
-                const rating = deriveRating(ad)
+          <div className="card grouped-card">
+            <p className="eyebrow">Vinnere</p>
+            <p className="muted group-sub">Annonsene som ligger tydelig over snittet.</p>
+            <div className="group-list">
+              {groupedAds.winners.slice(0, expandedGroups.winners ? 5 : 2).map((ad, idx) => {
+                const name = ad.adName || 'Ukjent annonse'
+                const roas = ad.roas === null || ad.roas === undefined ? '—' : ad.roas.toFixed(2)
                 return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`ad-card ${selectedId === id ? 'selected' : ''}`}
-                    onClick={() => setSelectedId(id)}
+                  <div
+                    key={`win-${getAdId(ad)}-${idx}`}
+                    className="group-row"
+                    onClick={() => handleSelectAdFromGroup(ad)}
                   >
-                    <div className="ad-thumb" />
-                    <div className="ad-meta">
-                      <div className="ad-name-row">
-                        <span className="ad-name ad-truncate">{ad.adName || 'Ukjent annonse'}</span>
-                        <span className={`badge ${ratingColor[rating] || ''}`}>{rating}</span>
-                      </div>
-                      <div className="ad-stats">
-                        <span>Spend {(ad.amountSpent || 0).toLocaleString('nb-NO')} kr</span>
-                        <span>ROAS {(ad.roas || 0).toFixed(2)}</span>
-                        <span>
-                          CPA{' '}
-                          {ad.cpa === null || ad.cpa === undefined
-                            ? '—'
-                            : `${ad.cpa.toLocaleString('nb-NO')} kr`}
-                        </span>
-                        {ad.ctr !== undefined && <span>CTR {(ad.ctr || 0).toFixed(1)}%</span>}
-                      </div>
+                    <div className="group-row-main">
+                      <span className="group-ad-name ad-truncate" title={name}>
+                        {name}
+                      </span>
+                      <span className="group-metric">ROAS {roas}</span>
                     </div>
-                  </button>
+                    <button
+                      type="button"
+                      className="secondary-button thin small"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleSelectAdFromGroup(ad)
+                      }}
+                    >
+                      Se annonse
+                    </button>
+                  </div>
                 )
               })}
+              {groupedAds.winners.length > (expandedGroups.winners ? 5 : 2) && (
+                <div className="group-row more-row">
+                  … og {groupedAds.winners.length - (expandedGroups.winners ? 5 : 2)} flere annonser
+                </div>
+              )}
+              {!groupedAds.winners.length && (
+                <div className="group-row muted">Ingen annonser i denne gruppen enda.</div>
+              )}
             </div>
+            {groupedAds.winners.length > 2 && (
+              <button
+                type="button"
+                className="secondary-button thin small toggle-btn"
+                onClick={() => toggleGroup('winners')}
+              >
+                {expandedGroups.winners ? 'Vis mindre' : 'Vis mer'}
+              </button>
+            )}
+          </div>
+
+          <div className="card grouped-card">
+            <p className="eyebrow">Stødige annonser</p>
+            <p className="muted group-sub">Ligger rundt kampanjesnittet.</p>
+            <div className="group-list">
+              {groupedAds.steady.slice(0, expandedGroups.steady ? 5 : 2).map((ad, idx) => {
+                const name = ad.adName || 'Ukjent annonse'
+                const roas = ad.roas === null || ad.roas === undefined ? '—' : ad.roas.toFixed(2)
+                return (
+                  <div
+                    key={`std-${getAdId(ad)}-${idx}`}
+                    className="group-row"
+                    onClick={() => handleSelectAdFromGroup(ad)}
+                  >
+                    <div className="group-row-main">
+                      <span className="group-ad-name ad-truncate" title={name}>
+                        {name}
+                      </span>
+                      <span className="group-metric">ROAS {roas}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="secondary-button thin small"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleSelectAdFromGroup(ad)
+                      }}
+                    >
+                      Se annonse
+                    </button>
+                  </div>
+                )
+              })}
+              {groupedAds.steady.length > (expandedGroups.steady ? 5 : 2) && (
+                <div className="group-row more-row">
+                  … og {groupedAds.steady.length - (expandedGroups.steady ? 5 : 2)} flere annonser
+                </div>
+              )}
+              {!groupedAds.steady.length && (
+                <div className="group-row muted">Ingen annonser i denne gruppen enda.</div>
+              )}
+            </div>
+            {groupedAds.steady.length > 2 && (
+              <button
+                type="button"
+                className="secondary-button thin small toggle-btn"
+                onClick={() => toggleGroup('steady')}
+              >
+                {expandedGroups.steady ? 'Vis mindre' : 'Vis mer'}
+              </button>
+            )}
+          </div>
+
+          <div className="card grouped-card">
+            <p className="eyebrow">Annonser som bør vurderes</p>
+            <p className="muted group-sub">Ligger klart under snittet på ROAS/CPA.</p>
+            <div className="group-list">
+              {groupedAds.needsCare.slice(0, expandedGroups.needsCare ? 5 : 2).map((ad, idx) => {
+                const name = ad.adName || 'Ukjent annonse'
+                const roas = ad.roas === null || ad.roas === undefined ? '—' : ad.roas.toFixed(2)
+                return (
+                  <div
+                    key={`care-${getAdId(ad)}-${idx}`}
+                    className="group-row"
+                    onClick={() => handleSelectAdFromGroup(ad)}
+                  >
+                    <div className="group-row-main">
+                      <span className="group-ad-name ad-truncate" title={name}>
+                        {name}
+                      </span>
+                      <span className="group-metric">ROAS {roas}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="secondary-button thin small"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleSelectAdFromGroup(ad)
+                      }}
+                    >
+                      Se annonse
+                    </button>
+                  </div>
+                )
+              })}
+              {groupedAds.needsCare.length > (expandedGroups.needsCare ? 5 : 2) && (
+                <div className="group-row more-row">
+                  … og {groupedAds.needsCare.length - (expandedGroups.needsCare ? 5 : 2)} flere annonser
+                </div>
+              )}
+              {!groupedAds.needsCare.length && (
+                <div className="group-row muted">Ingen annonser i denne gruppen enda.</div>
+              )}
+            </div>
+            {groupedAds.needsCare.length > 2 && (
+              <button
+                type="button"
+                className="secondary-button thin small toggle-btn"
+                onClick={() => toggleGroup('needsCare')}
+              >
+                {expandedGroups.needsCare ? 'Vis mindre' : 'Vis mer'}
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="detail-right">
+        <div className="top-right">
           {selectedAd && (
-            <div className="card creative-card">
+            <div className="card creative-card detail-card">
               <div className="creative-card-header">
                 <p className="eyebrow">Creative Preview</p>
                 <h3>{selectedAd.adName || 'Ukjent annonse'}</h3>
@@ -149,16 +524,28 @@ const DetailedView = () => {
           )}
 
           {selectedAd && (
-            <div className="card selected-ad-card">
-              <p className="eyebrow">Selected Ad</p>
-              <h3>{selectedAd.adName || 'Ukjent annonse'}</h3>
-              <p className="muted">{selectedAd.adSetName || selectedAd.adSet || 'Ukjent ad set'}</p>
-              <div className="detail-grid detail-grid-large">
+            <div className="card selected-ad-card detail-card">
+              <p className="eyebrow">Detaljer for annonse</p>
+              <div className="flex between" style={{ gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ minWidth: 0 }}>
+                  <h3 className="ad-truncate" title={selectedAd.adName || 'Ukjent annonse'}>
+                    {selectedAd.adName || 'Ukjent annonse'}
+                  </h3>
+                  <p
+                    className="muted ad-truncate"
+                    title={selectedAd.adSetName || selectedAd.adSet || 'Ukjent ad set'}
+                  >
+                    {selectedAd.adSetName || selectedAd.adSet || 'Ukjent ad set'}
+                  </p>
+                </div>
+                <span className={`badge ${ratingColor[getPerformanceBucket(selectedAd)] || ''}`}>
+                  {getPerformanceBucket(selectedAd) || '—'}
+                </span>
+              </div>
+              <div className="detail-grid detail-grid-large metrics-grid">
                 <div>
                   <p className="label">Spend</p>
-                  <p className="value">
-                    {(selectedAd.amountSpent || 0).toLocaleString('nb-NO')} kr
-                  </p>
+                  <p className="value">{(selectedAd.amountSpent || 0).toLocaleString('nb-NO')} kr</p>
                 </div>
                 <div>
                   <p className="label">ROAS</p>
@@ -177,59 +564,127 @@ const DetailedView = () => {
                   <p className="value">{selectedAd.purchases ?? '—'}</p>
                 </div>
                 <div>
-                  <p className="label">Status</p>
-                  <p className="value">{selectedAd.status || '—'}</p>
+                  <p className="label">CTR</p>
+                  <p className="value">
+                    {selectedAd.ctr === null || selectedAd.ctr === undefined
+                      ? '—'
+                      : `${(selectedAd.ctr || 0).toFixed(1)} %`}
+                  </p>
                 </div>
               </div>
-            </div>
-          )}
-
-          {selectedAd && (
-            <div className="right-bottom-grid">
-              <div className="card performance-card">
-                <p className="eyebrow">Performance</p>
-                <h3>
-                  Score {selectedAd.performanceScore ?? '—'} / 100 ({deriveRating(selectedAd)})
-                </h3>
-                <p className="muted limited-text">
-                  {deriveRating(selectedAd) === 'Winner'
-                    ? 'Leverer sterke resultater, skaler forsiktig.'
-                    : deriveRating(selectedAd) === 'Average'
-                    ? 'Stabil, men har mer potensial med forbedret målretting.'
-                    : 'Underpresterer, reduser budsjett eller test ny variant.'}
+              {selectedStats && (
+                <p className="muted limited-text" style={{ marginTop: '1rem' }}>
+                  {selectedStats.roasDiff != null && selectedStats.roasDiff > 5
+                    ? 'ROAS er høyere enn kampanjesnittet.'
+                    : selectedStats.roasDiff != null && selectedStats.roasDiff < -5
+                    ? 'ROAS er lavere enn snittet for kampanjen.'
+                    : 'ROAS ligger omtrent på snittet.'}{' '}
+                  {selectedStats.cpaDiff != null && selectedStats.cpaDiff > 5
+                    ? 'CPA er høyere enn snittet.'
+                    : selectedStats.cpaDiff != null && selectedStats.cpaDiff < -5
+                    ? 'CPA er lavere enn snittet.'
+                    : 'CPA er nær snittet.'}{' '}
+                  {selectedStats.ctrDiff != null && selectedStats.ctrDiff > 5
+                    ? 'CTR er høyere enn snittet.'
+                    : selectedStats.ctrDiff != null && selectedStats.ctrDiff < -5
+                    ? 'CTR er lavere enn snittet.'
+                    : 'CTR er nær snittet.'}
                 </p>
-              </div>
-
-              <div className="card insights-card">
-                <p className="eyebrow">AI Insights</p>
-                <ul className="limited-text">
-                  <li>ROAS opp hvis vi flytter budsjett fra svake annonser.</li>
-                  <li>Retargeting CTR kan bedres med kortere hook.</li>
-                  <li>CPA synker når vinner-annonsen får mer budsjett.</li>
-                </ul>
-              </div>
-
-              <div className="card actions-card span-2">
-                <p className="eyebrow">Recommended Actions</p>
-                <div className="action-item">
-                  <span className="action-icon">⚡</span>
-                  Øk budsjett på vinner-annonsen med 15% (kort sikt)
-                </div>
-                <div className="action-item">
-                  <span className="action-icon">🧪</span>
-                  A/B-test ny video med kortere hook (medium)
-                </div>
-                <div className="action-item">
-                  <span className="action-icon">🔥</span>
-                  Paus svak annonse og flytt spend (kort sikt)
-                </div>
-                <div className="action-item">
-                  <span className="action-icon">🎯</span>
-                  Lag lookalike på kjøpere siste 60 dager (lang sikt)
-                </div>
-              </div>
+              )}
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="bottom-section">
+        <div className="chip-group table-filter">
+          {['all', 'winner', 'average', 'poor'].map((key) => (
+            <button
+              key={key}
+              type="button"
+              className={`chip ${performanceFilter === key ? 'active' : ''}`}
+              onClick={() => setPerformanceFilter(key)}
+            >
+              {key === 'all'
+                ? 'All'
+                : key === 'winner'
+                ? 'Winner'
+                : key === 'average'
+                ? 'Average'
+                : 'Poor'}
+            </button>
+          ))}
+        </div>
+
+        <div className="table-card">
+          <div className="table-header">
+            <button type="button" onClick={() => handleSort('name')}>
+              Annonse
+            </button>
+            <button type="button" onClick={() => handleSort('performance')}>
+              Performance
+            </button>
+            <span>Tiltak</span>
+            <button type="button" className="right" onClick={() => handleSort('results')}>
+              Results
+            </button>
+            <button type="button" className="right" onClick={() => handleSort('cpr')}>
+              CPR
+            </button>
+            <button type="button" className="right" onClick={() => handleSort('roas')}>
+              ROAS
+            </button>
+            <button type="button" className="right" onClick={() => handleSort('ctr')}>
+              CTR
+            </button>
+          </div>
+
+          <div className="table-body">
+            {visibleAds.map((ad, index) => {
+              const baseId = getAdId(ad)
+              const rowKey = `${baseId}-${index}`
+              const bucket = getPerformanceBucket(ad)
+              const rating = bucket || '—'
+              const purchases = ad.purchases ?? ad.results ?? '—'
+              const cpa =
+                ad.cpa === null || ad.cpa === undefined
+                  ? '—'
+                  : `${ad.cpa.toLocaleString('nb-NO')} kr`
+              const roas = ad.roas === null || ad.roas === undefined ? '—' : ad.roas.toFixed(2)
+              const ctr =
+                ad.ctr === null || ad.ctr === undefined ? '—' : `${(ad.ctr || 0).toFixed(1)} %`
+
+              return (
+                <div
+                  key={rowKey}
+                  className={`table-row ${selectedId === baseId ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelectedId(baseId)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                >
+                  <div className="table-cell name-cell">
+                    <div className="ad-thumb small" />
+                    <div className="name-meta" title={ad.adName || 'Ukjent annonse'}>
+                      <span className="ad-name ad-truncate">{ad.adName || 'Ukjent annonse'}</span>
+                    </div>
+                  </div>
+                  <div className="table-cell center">
+                    <span className={`badge ${ratingColor[rating] || ''}`}>{rating}</span>
+                  </div>
+                  <div className="table-cell center">
+                    <button type="button" className="secondary-button thin">
+                      Se tiltak
+                    </button>
+                  </div>
+                  <div className="table-cell right">{purchases}</div>
+                  <div className="table-cell right">{cpa}</div>
+                  <div className="table-cell right">{roas}</div>
+                  <div className="table-cell right">{ctr}</div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </AppShell>

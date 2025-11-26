@@ -9,19 +9,7 @@ import SettingsPage from './pages/SettingsPage'
 function App() {
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="top-logo">
-          <img
-            src="/Logo-White.png"
-            alt="InsightAdsAI logo"
-            className="top-logo-img"
-          />
-        </div>
-        <SignedIn>
-          <UserButton />
-        </SignedIn>
-      </header>
-      <div className="app-container">
+            <div className="app-container">
         <Routes>
           <Route path="/sign-in/*" element={<SignIn routing="path" path="/sign-in" />} />
           <Route path="/sign-up/*" element={<SignUp routing="path" path="/sign-up" />} />
