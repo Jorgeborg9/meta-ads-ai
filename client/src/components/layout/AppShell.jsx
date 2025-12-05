@@ -2,6 +2,8 @@ import { UserButton } from '@clerk/clerk-react'
 import { NavLink } from 'react-router-dom'
 
 const AppShell = ({ activeTab = 'detailed', children, showTabs = true }) => {
+  const hasClerk = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
   const sidebarItems = [
     { label: 'Detailed View', to: '/' },
     { label: 'Upload', to: '/upload' },
@@ -15,7 +17,7 @@ const AppShell = ({ activeTab = 'detailed', children, showTabs = true }) => {
       <aside className="detailed-sidebar">
         <div className="sidebar-profile">
           <div className="profile-avatar">
-            <UserButton />
+            {hasClerk ? <UserButton /> : <div className="avatar-placeholder" />}
           </div>
           <div className="profile-text">Profil</div>
         </div>

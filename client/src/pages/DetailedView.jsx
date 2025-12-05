@@ -64,9 +64,9 @@ const DetailedView = () => {
     return Number.isFinite(num) ? num : 0
   }
 
-  const averageMetrics = useMemo(() => {
-    if (!ads.length) {
-      return {
+const averageMetrics = useMemo(() => {
+  if (!ads.length) {
+    return {
         avgRoas: null,
         avgCpa: null,
         avgCtr: null,
@@ -119,11 +119,68 @@ const DetailedView = () => {
     return { avgRoas, avgCpa, avgCtr, totalSpend, totalPurchases, strongestAd }
   }, [ads])
 
+  const groupedAds = useMemo(() => {
+    if (!ads.length) return { winners: [], steady: [], needsCare: [], bucketMap: {} }
+
+    const roasValues = ads.map((ad) => parseMetricNumber(ad.roas) || 0)
+    const purchaseValues = ads.map((ad) => parseMetricNumber(ad.purchases) || 0)
+    const roasMax = Math.max(...roasValues, 1)
+    const roasMin = Math.min(...roasValues, 0)
+    const purchMax = Math.max(...purchaseValues, 1)
+    const purchMin = Math.min(...purchaseValues, 0)
+
+    const norm = (val, min, max) => {
+      if (max === min) return 0.5
+      return (val - min) / (max - min)
+    }
+
+    const scored = ads.map((ad, idx) => {
+      const roas = roasValues[idx]
+      const purchases = purchaseValues[idx]
+      const roasScore = norm(roas, roasMin, roasMax)
+      const purchaseScore = norm(purchases, purchMin, purchMax)
+      const score = roasScore * 0.7 + purchaseScore * 0.3
+      return { ad, score }
+    })
+
+    const sorted = scored.sort((a, b) => b.score - a.score)
+    const total = sorted.length
+    const winnerCount = Math.max(1, Math.min(3, Math.ceil(total * 0.15)))
+    const poorCount = Math.max(1, Math.ceil(total * 0.35))
+
+    const winners = sorted.slice(0, winnerCount).map((s) => s.ad)
+    const needsCare = sorted.slice(total - poorCount).map((s) => s.ad)
+
+    const needsCareIds = new Set(needsCare.map((a) => getAdId(a)))
+    const winnerIds = new Set(winners.map((a) => getAdId(a)))
+    const steady = sorted
+      .filter((s) => !needsCareIds.has(getAdId(s.ad)) && !winnerIds.has(getAdId(s.ad)))
+      .map((s) => s.ad)
+
+    const bucketMap = {}
+    winners.forEach((ad) => (bucketMap[getAdId(ad)] = 'Winner'))
+    steady.forEach((ad) => (bucketMap[getAdId(ad)] = 'Average'))
+    needsCare.forEach((ad) => (bucketMap[getAdId(ad)] = 'Poor'))
+
+    return { winners, steady, needsCare, bucketMap }
+  }, [ads])
+
+  const getRelativeBucket = (ad) =>
+    (groupedAds.bucketMap && groupedAds.bucketMap[getAdId(ad)]) || getPerformanceBucket(ad)
+
+  const getRelativeRank = (ad) => {
+    const bucket = getRelativeBucket(ad)
+    if (bucket === 'Winner') return 3
+    if (bucket === 'Average') return 2
+    if (bucket === 'Poor') return 1
+    return 0
+  }
+
   const visibleAds = useMemo(() => {
     if (!ads.length) return []
     const filtered = ads.filter((ad) => {
       if (performanceFilter === 'all') return true
-      const bucket = getPerformanceBucket(ad)
+      const bucket = getRelativeBucket(ad)
       if (performanceFilter === 'winner') return bucket === 'Winner'
       if (performanceFilter === 'average') return bucket === 'Average'
       if (performanceFilter === 'poor') return bucket === 'Poor'
@@ -145,7 +202,7 @@ const DetailedView = () => {
           case 'ctr':
             return parseMetricNumber(ad.ctr)
           case 'performance':
-            return getPerformanceRank(ad)
+            return getRelativeRank(ad)
           case 'name':
             return String(ad.name || ad.adName || '')
           default:
@@ -162,7 +219,7 @@ const DetailedView = () => {
     })
 
     return sorted
-  }, [ads, performanceFilter, sortConfig])
+  }, [ads, performanceFilter, sortConfig, groupedAds.bucketMap])
 
   useEffect(() => {
     if (visibleAds.length > 0 && !selectedId) {
@@ -178,6 +235,15 @@ const DetailedView = () => {
     return visibleAds.find((ad) => getAdId(ad) === selectedId) || visibleAds[0]
   }, [visibleAds, selectedId])
 
+  const adInsight = useMemo(() => {
+    if (!selectedAd) return null
+    return generateAdInsight(
+      selectedAd,
+      averageMetrics,
+      groupedAds.bucketMap[getAdId(selectedAd)] || deriveRating(selectedAd),
+    )
+  }, [selectedAd, averageMetrics, groupedAds.bucketMap])
+
   const selectedStats = useMemo(() => {
     if (!selectedAd) return null
     const roas = parseMetricNumber(selectedAd.roas)
@@ -188,10 +254,13 @@ const DetailedView = () => {
     const cpaDiff = percentDiff(cpa, averageMetrics.avgCpa)
     const ctrDiff = percentDiff(ctr, averageMetrics.avgCtr)
 
-    const bucket = deriveRating(selectedAd)
+    // bucket from relative scoring map if available
+    const mapBucket =
+      groupedAds.bucketMap && selectedAd ? groupedAds.bucketMap[getAdId(selectedAd)] : null
+    const bucket = mapBucket || deriveRating(selectedAd)
 
     return { roas, cpa, ctr, roasDiff, cpaDiff, ctrDiff, bucket }
-  }, [selectedAd, averageMetrics])
+  }, [selectedAd, averageMetrics, groupedAds.bucketMap])
 
   const insightBullets = useMemo(() => {
     if (!selectedStats) return []
@@ -224,6 +293,70 @@ const DetailedView = () => {
     return bullets.slice(0, 4)
   }, [selectedStats])
 
+  function generateAdInsight(ad, campaignStats, bucketLabel) {
+    const roas = parseMetricNumber(ad.roas)
+    const cpa = parseMetricNumber(ad.cpa ?? ad.cpr)
+    const ctr = parseMetricNumber(ad.ctr)
+    const purchases = parseMetricNumber(ad.purchases ?? ad.results)
+    const spend = parseMetricNumber(ad.amountSpent)
+
+    const avgRoas = campaignStats.avgRoas ?? 0
+    const avgCpa = campaignStats.avgCpa ?? 0
+    const avgCtr = campaignStats.avgCtr ?? 0
+
+    const roasRatio = avgRoas ? roas / avgRoas : 1
+    const cpaRatio = avgCpa ? cpa / avgCpa : 1
+
+    const isLowData = purchases < 3 || spend < Math.max(50, avgCpa * 0.5)
+    const isWinner = bucketLabel === 'Winner' || (avgRoas && roas >= avgRoas * 1.5 && purchases >= 10)
+    const isAroundAvg = avgRoas && roas >= avgRoas * 0.9 && roas <= avgRoas * 1.2
+    const isBelow = avgRoas && roas < avgRoas * 0.9 && spend >= Math.max(avgCpa, 50)
+
+    let summary = 'Performance is close to the campaign average.'
+    const actions = []
+    let score = 3
+
+    if (isLowData) {
+      summary =
+        'Too little data to judge performance yet. Let it run a bit longer before making big changes.'
+      actions.push(
+        { type: 'monitor', text: 'Let this ad collect more data for a day or two before adjusting budget.' },
+        { type: 'info', text: 'Keep a close eye on early signals like CTR and CPC.' }
+      )
+      score = 3
+    } else if (isWinner) {
+      summary =
+        'This ad stands out as a clear winner with strong ROAS and solid volume compared to the campaign average.'
+      actions.push(
+        { type: 'scale', text: 'Increase budget by 20–30% over the next few days and monitor ROAS.' },
+        { type: 'test', text: 'Duplicate and test 1–2 new creatives with a different hook or angle.' },
+        { type: 'monitor', text: 'Keep targeting steady and re-evaluate after a few days of stable performance.' }
+      )
+      if (roasRatio >= 1.8 && cpaRatio <= 0.8) score = 5
+      else score = 4
+    } else if (isAroundAvg) {
+      summary = 'This ad performs around the campaign average; a steady contributor.'
+      actions.push(
+        { type: 'monitor', text: 'Keep budget stable and let it run 3–4 more days before major changes.' },
+        { type: 'test', text: 'Test a small creative tweak – headline, first 3 seconds of video, or thumbnail.' },
+        { type: 'info', text: 'If ROAS trends below average for several days, consider moving budget into top performers.' }
+      )
+      score = 3
+    } else if (isBelow) {
+      summary =
+        'This ad is below the campaign average on ROAS/CPA and should be reviewed for pause or fixes.'
+      actions.push(
+        { type: 'pause', text: 'Pause this ad if performance does not improve within the next 1–2 days.' },
+        { type: 'scale', text: 'Move part of this budget into your best performing ads.' },
+        { type: 'test', text: 'Test a new creative that focuses clearly on the offer or product benefits.' }
+      )
+      if (roasRatio < 0.6) score = 1
+      else score = 2
+    }
+
+    return { summary, actions: actions.slice(0, 3), score }
+  }
+
   const actionBullets = useMemo(() => {
     if (!selectedStats) return []
     const bullets = []
@@ -251,29 +384,6 @@ const DetailedView = () => {
     }
     return bullets.slice(0, 4)
   }, [selectedStats])
-
-  const groupedAds = useMemo(() => {
-    const winners = []
-    const steady = []
-    const needsCare = []
-    const avgRoas = averageMetrics.avgRoas
-    ads.forEach((ad) => {
-      const bucket = getPerformanceBucket(ad)
-      const roasVal = parseMetricNumber(ad.roas)
-      const isWinner = bucket === 'Winner' || (avgRoas ? roasVal > avgRoas * 1.1 : false)
-      const isPoor = bucket === 'Poor' || (avgRoas ? roasVal < avgRoas * 0.9 : false)
-      if (isWinner) {
-        winners.push(ad)
-        return
-      }
-      if (isPoor) {
-        needsCare.push(ad)
-        return
-      }
-      steady.push(ad)
-    })
-    return { winners, steady, needsCare }
-  }, [ads, averageMetrics.avgRoas])
 
   const handleSelectAdFromGroup = (ad) => {
     const id = getAdId(ad)
@@ -572,24 +682,57 @@ const DetailedView = () => {
                   </p>
                 </div>
               </div>
+              {adInsight && (
+                <div className="ad-ai-score">
+                  <div className="ad-ai-score-label">AI score</div>
+                  <div className="ad-ai-score-value">
+                    <span className="ad-ai-score-number">{adInsight.score}/5</span>
+                    <div className="ad-ai-score-visual">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <span
+                          key={n}
+                          className={`ai-score-dot ${n <= adInsight.score ? 'ai-score-dot--active' : ''}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               {selectedStats && (
-                <p className="muted limited-text" style={{ marginTop: '1rem' }}>
-                  {selectedStats.roasDiff != null && selectedStats.roasDiff > 5
-                    ? 'ROAS is higher than the campaign average.'
-                    : selectedStats.roasDiff != null && selectedStats.roasDiff < -5
-                    ? 'ROAS is lower than the campaign average.'
-                    : 'ROAS is roughly on par with the average.'}{' '}
-                  {selectedStats.cpaDiff != null && selectedStats.cpaDiff > 5
-                    ? 'CPA is higher than the average.'
-                    : selectedStats.cpaDiff != null && selectedStats.cpaDiff < -5
-                    ? 'CPA is lower than the average.'
-                    : 'CPA is near the average.'}{' '}
-                  {selectedStats.ctrDiff != null && selectedStats.ctrDiff > 5
-                    ? 'CTR is higher than the average.'
-                    : selectedStats.ctrDiff != null && selectedStats.ctrDiff < -5
-                    ? 'CTR is lower than the average.'
-                    : 'CTR is near the average.'}
-                </p>
+                <div className="ad-insight">
+                  <div className="ad-insight-summary">
+                    <div className="score-row">
+                      <h4>AI summary</h4>
+                      {adInsight && (
+                        <span className="ad-score-badge" title="AI score 1–5">
+                          {adInsight.score}/5
+                        </span>
+                      )}
+                    </div>
+                    <p>{adInsight?.summary}</p>
+                  </div>
+                  {adInsight?.actions?.length ? (
+                    <div className="ad-insight-actions">
+                      <h4>Suggested actions</h4>
+                      <ul className="ad-insight-actions-list">
+                        {adInsight.actions.map((action, idx) => (
+                          <li key={idx} className="ad-insight-action-item">
+                            <span
+                              className={`ad-insight-action-pill ad-insight-action-pill--${action.type}`}
+                            >
+                              {action.type === 'scale' && 'Scale'}
+                              {action.type === 'test' && 'Test'}
+                              {action.type === 'monitor' && 'Monitor'}
+                              {action.type === 'pause' && 'Pause'}
+                              {action.type === 'info' && 'Info'}
+                            </span>
+                            <span className="ad-insight-action-text">{action.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
               )}
             </div>
           )}
@@ -643,7 +786,7 @@ const DetailedView = () => {
             {visibleAds.map((ad, index) => {
               const baseId = getAdId(ad)
               const rowKey = `${baseId}-${index}`
-              const bucket = getPerformanceBucket(ad)
+              const bucket = getRelativeBucket(ad)
               const rating = bucket || '—'
               const purchases = ad.purchases ?? ad.results ?? '—'
               const cpa =

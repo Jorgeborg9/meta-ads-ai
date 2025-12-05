@@ -1471,24 +1471,8 @@ input[type='file'] {
 }
 
 @media (max-width: 1200px) {
-  .app-container,
-  
-
+  /* media query block intentionally left blank */
 }
-
-
-}
-
-
-
-
-
-
-
-
-
-
-
 .grouped-card h4 {
   margin: 0 0 0.25rem 0;
   font-size: 1rem;
@@ -1632,3 +1616,120 @@ input[type='file'] {
 
 
 .group-row-main { display:flex; align-items:center; gap:0.5rem; min-width:0; }
+
+.ad-insight {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ad-insight-summary {
+  background: #f6f6fb;
+  border: 1px solid #e7e8f3;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.ad-insight-summary h4,
+.ad-insight-actions h4 {
+  margin: 0 0 0.35rem 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  color: #0a0630;
+}
+
+.ad-insight-summary p {
+  margin: 0;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.ad-ai-score {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e7e8f3;
+  border-radius: 12px;
+  background: #f9f9fd;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ad-ai-score-label {
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  color: #6b7280;
+}
+
+.ad-ai-score-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0a0630;
+  font-weight: 700;
+}
+
+.ad-ai-score-number {
+  font-size: 1rem;
+}
+
+.ad-ai-score-visual {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.ai-score-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e7e8f3;
+  border: 1px solid #dcdff7;
+}
+
+.ai-score-dot--active {
+  background: #412ece;
+  border-color: #412ece;
+}
+
+.ad-insight-actions-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.ad-insight-action-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.ad-insight-action-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: #0a0630;
+  background: #eef2ff;
+  border: 1px solid #dcdff7;
+  min-width: 64px;
+  text-align: center;
+}
+
+.ad-insight-action-pill--scale { background: #e6f6ed; border-color: #c9ebd5; color: #0b5f2c; }
+.ad-insight-action-pill--test { background: #f3f0ff; border-color: #e0dcff; color: #412ece; }
+.ad-insight-action-pill--monitor { background: #fff7e6; border-color: #ffe2a9; color: #8c4b00; }
+.ad-insight-action-pill--pause { background: #ffecec; border-color: #ffc9c9; color: #9b1c1c; }
+.ad-insight-action-pill--info { background: #eef6ff; border-color: #d8eafe; color: #0c3c78; }
+
+.ad-insight-action-text {
+  flex: 1;
+  color: #0f172a;
+  line-height: 1.4;
+}
