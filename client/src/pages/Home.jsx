@@ -11,36 +11,35 @@ const Home = () => {
       <section style={{ marginBottom: '2rem' }}>
         <div className="hero-top-row">
           <h1 style={{ fontSize: '2.5rem', margin: '0.5rem 0 0', color: '#fdfaf5' }}>
-            MVP-dashboard for smarter kampanjeinnsikt <span className="beta-badge">Beta</span>
+            MVP dashboard for smarter campaign insights <span className="beta-badge">Beta</span>
           </h1>
           <a className="feedback-link" href="mailto:feedback@example.com">
-            Gi tilbakemelding →
+            Give feedback →
           </a>
         </div>
         <p style={{ color: '#d1d5db', maxWidth: '640px', marginTop: '0.75rem' }}>
-          Analyser Meta Ads-data med AI, få KPI-oversikt og raskt se hva som fungerer. Laste opp CSV og få
-          anbefalinger på minutter.
+          Analyze your Meta Ads data with AI, get a KPI overview, and quickly see what works. Upload a CSV and get recommendations in minutes.
         </p>
       </section>
 
       <section className="card" style={{ marginBottom: '1.5rem' }}>
-        <h2 className="section-title">Systemstatus</h2>
+        <h2 className="section-title">System status</h2>
         <HealthCheck />
       </section>
 
       {!hasCurrentData && (
         <section className="card onboarding-card">
-          <h2 className="section-title">Slik bruker du verktøyet</h2>
+          <h2 className="section-title">How to use the tool</h2>
           <ol className="onboarding-steps">
-            <li>Last opp Meta Ads-CSV fra kontoen din.</li>
-            <li>Juster filtre og scenario for å simulere målene dine.</li>
-            <li>Les AI-innsikten og bruk tiltak-knappene for å prioritere handlinger.</li>
+            <li>Upload a Meta Ads CSV from your account.</li>
+            <li>Adjust filters and scenario targets to simulate your goals.</li>
+            <li>Read the AI insights and use the action buttons to prioritize next steps.</li>
           </ol>
         </section>
       )}
 
       <section className="card">
-        <h2 className="section-title">Last opp Meta Ads-CSV</h2>
+        <h2 className="section-title">Upload Meta Ads CSV</h2>
         <CsvUpload onDataStatusChange={setHasCurrentData} />
       </section>
 

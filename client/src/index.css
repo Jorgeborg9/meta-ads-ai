@@ -210,7 +210,7 @@ main > section:not(:last-child) {
 }
 
 .upload-panel {
-  background: var(--color-linen);
+  background: #ffffff;
   color: var(--color-midnight);
   border-radius: 18px;
   padding: 1.25rem 1.5rem;
@@ -232,6 +232,17 @@ main > section:not(:last-child) {
 
 .upload-button {
   margin-top: 0.5rem;
+}
+
+.demo-button {
+  background: #ffffff;
+  color: #412ece;
+  border: 1px solid #412ece;
+}
+
+.demo-button:hover {
+  background: #ede7ff;
+  color: #361fb7;
 }
 
 .upload-status {
@@ -289,6 +300,18 @@ main > section:not(:last-child) {
 
 .secondary-button:active {
   transform: translateY(0);
+}
+
+/* Demo buttons override the linen background */
+.secondary-button.demo-button {
+  background: #ffffff;
+  color: #412ece;
+  border-color: #412ece;
+}
+
+.secondary-button.demo-button:hover {
+  background: #ede7ff;
+  color: #361fb7;
 }
 
 .upload-actions {
@@ -488,7 +511,7 @@ main > section:not(:last-child) {
 .empty-state-card {
   margin-top: 1.5rem;
   text-align: center;
-  background: var(--color-linen);
+  background: #ffffff;
   color: var(--color-midnight);
 }
 

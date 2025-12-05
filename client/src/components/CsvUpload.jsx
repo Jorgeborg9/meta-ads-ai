@@ -351,52 +351,55 @@ const getRecommendedAction = (
 
   if (bucket === 'Winner') {
     if ((roasOk === null || roasOk === true) && (cpaOk === null || cpaOk === true)) {
-      return 'Skaler'
+      return 'Scale'
     }
-    return 'Skaler lett'
+    return 'Light scale'
   }
 
   if (bucket === 'Above average') {
     if (spend < 2000) {
-      return 'Gi mer data'
+      return 'Feed more data'
     }
-    return 'Optimaliser'
+    return 'Optimize'
   }
 
   if (bucket === 'Average') {
     if (spend < 1500 && p > 0) {
-      return 'Gi mer data'
+      return 'Feed more data'
     }
-    return 'Optimaliser'
+    return 'Optimize'
   }
 
   if (bucket === 'Below average') {
     if (spend > 2000) {
-      return 'Skaler ned'
+      return 'Scale down'
     }
-    return 'Optimaliser'
+    return 'Optimize'
   }
 
   if (bucket === 'Poor') {
     if (spend < 1000) {
-      return 'Test nytt'
+      return 'Test new'
     }
-    return 'Vurder pause'
+    return 'Consider pausing'
   }
 
-  return 'Vurder tiltak'
+  return 'Review action'
 }
 
 const actionTooltipText = {
-  'Test nytt': 'Annonsen leverer svakt. Test en ny variant med nytt budskap, bilde eller format.',
-  'Gi mer data':
-    'Annonsen viser potensial, men har for lite data. La den gå lenger eller øk budsjettet forsiktig.',
-  Optimaliser:
-    'Annonsen presterer ok, men har tydelig forbedringspotensial. Juster målgrupper, budskap eller plasseringer.',
-  Pause:
-    'Annonsen bruker budsjett uten å levere resultater. Anbefalt å pause og flytte budsjett til sterkere annonser.',
-  'Vurder pause':
-    'Annonsen ligger under snittet. Følg med, og vurder å pause hvis resultatene ikke bedrer seg.',
+  'Test new': 'This ad underperforms. Test a new variant with fresh messaging, image, or format.',
+  'Feed more data':
+    'The ad shows potential but lacks data. Let it run longer or gently increase the budget.',
+  Optimize:
+    'The ad performs okay but has clear upside. Adjust audiences, messaging, or placements.',
+  Pause: 'This ad spends without delivering. Pause and shift budget to stronger ads.',
+  'Consider pausing':
+    'The ad is below average. Monitor closely and consider pausing if results do not improve.',
+  'Scale down': 'Reduce spend on this underperforming ad set to limit wasted budget.',
+  Scale: 'Gradually increase budget on this strong performer while monitoring efficiency.',
+  'Light scale': 'Increase budget carefully; results are good but still being validated.',
+  'Review action': 'Review recommended actions based on current performance.',
 }
 
 const getPeriodSummary = (list) => {
@@ -528,14 +531,14 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
   const [scenarioMaxCpa, setScenarioMaxCpa] = useState(
     () => initialSettings?.maxCpaScenario ?? '',
   )
-  const performanceScoreHelp =
-    'Performance score er en samlet skår fra 0–100 basert på ROAS, CPA og antall kjøp. Høyere skår betyr bedre resultat i denne fila.'
-  const performanceBucketHelp =
-    'Performance sier om annonsen er Winner, Above average, Average, Below average eller Poor – basert på performance score-grenser.'
-  const actionHelp =
-    'Tiltak gir en enkel anbefaling for hva du bør gjøre videre med annonsen eller ad settet, basert på resultat og scenario-mål.'
-  const scenarioHelp =
-    'Scenario-feltene lar deg sette ønsket mål-ROAS og maks CPA. Verktøyet sammenligner dagens resultater mot disse målene uten å filtrere bort annonser.'
+const performanceScoreHelp =
+  'Performance score is a combined score from 0–100 based on ROAS, CPA, and purchases. Higher scores mean better performance in this file.'
+const performanceBucketHelp =
+  'Performance indicates Winner, Above average, Average, Below average, or Poor based on performance score thresholds.'
+const actionHelp =
+  'Actions give a simple recommendation for what to do next with an ad or ad set, based on results and scenario goals.'
+const scenarioHelp =
+  'Scenario fields let you set target ROAS and max CPA. The tool compares current results against these goals without filtering out ads.'
 
   useEffect(() => {
     saveAnalysisSettings({
@@ -609,14 +612,14 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
     } catch (error) {
       console.error('Upload failed:', error)
       setStatus('error')
-      setMessage(error.message || 'Opplasting feilet. Prøv igjen, og sjekk API-tilgang.')
+      setMessage(error.message || 'Upload failed. Try again and check API access.')
     }
   }
 
   const handleUpload = async () => {
     if (!file) {
       setStatus('error')
-      setMessage('Velg en CSV-fil først')
+      setMessage('Choose a CSV file first')
       return
     }
     await uploadCurrentPeriodFile(file)
@@ -636,16 +639,16 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
     } catch (error) {
       console.error('Demo upload failed:', error)
       setStatus('error')
-      setMessage(error.message || 'Kunne ikke laste demo-fil')
+      setMessage(error.message || 'Could not load demo file')
     }
   }
 
   const handleUseDemoFilePrevious = async () => {
     try {
-      console.log('Laster demo fra:', DEMO_CSV_URL_PREVIOUS)
+      console.log('Loading demo from:', DEMO_CSV_URL_PREVIOUS)
       const response = await fetch(DEMO_CSV_URL_PREVIOUS)
       if (!response.ok) {
-        throw new Error('Fant ikke demo-fil')
+        throw new Error('Demo file not found')
       }
       const blob = await response.blob()
       const demoFile = new File([blob], 'meta-demo2.csv', { type: 'text/csv' })
@@ -653,27 +656,27 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
       await uploadPreviousPeriodFile(demoFile)
     } catch (error) {
       console.error('Previous period demo upload failed:', error)
-      setPreviousUploadMessage(error.message || 'Kunne ikke laste demo-fil for forrige periode')
+      setPreviousUploadMessage(error.message || 'Could not load demo file for previous period')
     }
   }
 
   const uploadPreviousPeriodFile = async (selectedFile) => {
     console.log('Uploading previous period file:', selectedFile.name, selectedFile.size)
-    setPreviousUploadMessage('Laster opp...')
+    setPreviousUploadMessage('Uploading...')
     try {
       const enrichedMetrics = await uploadCsvFile(selectedFile)
       setPreviousAds(enrichedMetrics)
       setPreviousFileInfo({ name: selectedFile.name, rows: enrichedMetrics.length })
-      setPreviousUploadMessage('Opplasting vellykket')
+      setPreviousUploadMessage('Upload successful')
     } catch (error) {
       console.error('Previous period upload failed:', error)
-      setPreviousUploadMessage(error.message || 'Opplasting feilet. Prøv igjen.')
+      setPreviousUploadMessage(error.message || 'Upload failed. Try again.')
     }
   }
 
   const handlePreviousUpload = async () => {
     if (!previousFile) {
-      setPreviousUploadMessage('Velg en CSV-fil for forrige periode')
+      setPreviousUploadMessage('Choose a CSV file for the previous period')
       return
     }
 
@@ -743,7 +746,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
       },
       {
         key: 'purchases',
-        label: 'Kjøp',
+        label: 'Purchases',
         formatter: (value) => Number(value || 0).toLocaleString('nb-NO'),
         current: currentPeriodSummary.totalPurchases,
         previous: hasPreviousPeriod ? previousPeriodSummary.totalPurchases : null,
@@ -850,7 +853,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
         metric.adSet ||
         metric['Ad set'] ||
         metric['Ad set name'] ||
-        'Ukjent ad set'
+        'Unknown ad set'
 
       if (!map.has(adSetName)) {
         map.set(adSetName, {
@@ -944,53 +947,53 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
     const poorStats = getGroupStats(poor)
     const wastedStats = getGroupStats(wastedSpendAds)
 
-    const winnerInsight =
-      winnerStats.count > 0
-        ? `Du har ${winnerStats.count} klar(e) vinner(e) med totalt forbruk på ${formatCurrency(
-            winnerStats.totalSpend,
-          )} og snitt-ROAS på ${
-            winnerStats.avgRoas !== null ? winnerStats.avgRoas.toFixed(2) : 'N/A'
-          }. Vurder å skalere budsjettet forsiktig på disse.`
-        : null
+  const winnerInsight =
+    winnerStats.count > 0
+      ? `You have ${winnerStats.count} clear winner(s) with total spend of ${formatCurrency(
+          winnerStats.totalSpend,
+        )} and average ROAS of ${
+          winnerStats.avgRoas !== null ? winnerStats.avgRoas.toFixed(2) : 'N/A'
+        }. Consider scaling these carefully.`
+      : null
 
-    const strongInsight =
-      strongStats.count > 0
-        ? `${strongStats.count} annonse(r) er over gjennomsnittet. Test flere varianter basert på disse, eller flytt budsjett hit fra svake annonser.`
-        : null
+  const strongInsight =
+    strongStats.count > 0
+      ? `${strongStats.count} ad(s) are above average. Test more variants based on these or move budget from weaker ads.`
+      : null
 
-    const wastedInsight =
-      wastedStats.totalSpend > 0
-        ? `Det brukes cirka ${formatCurrency(
-            wastedStats.totalSpend,
-          )} på annonser uten kjøp i perioden. Vurder å pause eller endre disse.`
-        : null
+  const wastedInsight =
+    wastedStats.totalSpend > 0
+      ? `About ${formatCurrency(
+          wastedStats.totalSpend,
+        )} is spent on ads without purchases this period. Consider pausing or changing these.`
+      : null
 
-    const poorInsight =
-      poorStats.count > 0
-        ? `${poorStats.count} annonse(r) ligger i kategorien «Poor». Disse trekker ned totalresultatet og bør enten forbedres eller fases ut.`
-        : null
+  const poorInsight =
+    poorStats.count > 0
+      ? `${poorStats.count} ad(s) are in the "Poor" category. They pull down overall results and should be improved or phased out.`
+      : null
 
     const periodChangeInsights = []
     if (hasPreviousPeriod) {
       if (spendChangePercent !== null) {
         periodChangeInsights.push(
-          `Spend er ${spendChangePercent >= 0 ? 'opp' : 'ned'} ${Math.abs(spendChangePercent).toFixed(
+          `Spend is ${spendChangePercent >= 0 ? 'up' : 'down'} ${Math.abs(spendChangePercent).toFixed(
             1,
-          )} % mot forrige periode.`,
+          )} % vs previous period.`,
         )
       }
       if (purchaseChangePercent !== null) {
         periodChangeInsights.push(
-          `Antall kjøp er ${
-            purchaseChangePercent >= 0 ? 'opp' : 'ned'
-          } ${Math.abs(purchaseChangePercent).toFixed(1)} % mot forrige periode.`,
+          `Purchases are ${purchaseChangePercent >= 0 ? 'up' : 'down'} ${Math.abs(
+            purchaseChangePercent,
+          ).toFixed(1)} % vs previous period.`,
         )
       }
       if (roasChangePercent !== null) {
         periodChangeInsights.push(
-          `ROAS er ${roasChangePercent >= 0 ? 'opp' : 'ned'} ${Math.abs(roasChangePercent).toFixed(
+          `ROAS is ${roasChangePercent >= 0 ? 'up' : 'down'} ${Math.abs(roasChangePercent).toFixed(
             1,
-          )} % mot forrige periode.`,
+          )} % vs previous period.`,
         )
       }
     }
@@ -1052,7 +1055,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
     <section style={{ marginTop: '2rem' }}>
       <div className='upload-panels'>
         <div className='upload-panel'>
-          <p className='upload-title'>Nåværende periode</p>
+          <p className='upload-title'>Current period</p>
           <input type='file' accept='.csv' onChange={handleFileChange} />
           <div className='upload-actions'>
             <button
@@ -1061,18 +1064,18 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
               className='primary-button upload-button'
               disabled={status === 'loading'}
             >
-              Last opp CSV
+              Upload CSV
             </button>
             <button
               type='button'
               onClick={handleUseDemoFile}
-              className='secondary-button upload-button'
+              className='secondary-button demo-button upload-button'
               disabled={status === 'loading'}
             >
-              Bruk demo-fil
+              Use demo file
             </button>
           </div>
-          <p className='upload-helper-text'>Har du ikke en fil klar? Bruk demo-fil for å teste verktøyet.</p>
+          <p className='upload-helper-text'>If you do not have a file ready, use the demo file to test the tool.</p>
           {message && (
             <p className='upload-status' style={{ color: status === 'error' ? 'red' : 'green' }}>
               {message}
@@ -1080,30 +1083,30 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
           )}
           {currentFileInfo && (
             <p className='upload-info'>
-              Nåværende periode: {currentFileInfo.rows} rader · {currentFileInfo.name}
+              Current period: {currentFileInfo.rows} rows · {currentFileInfo.name}
             </p>
           )}
         </div>
         <div className='upload-panel'>
-          <p className='upload-title'>Forrige periode (valgfritt)</p>
+          <p className='upload-title'>Previous period (optional)</p>
           <input type='file' accept='.csv' onChange={handlePreviousFileChange} />
           <div className='upload-actions'>
             <button type='button' onClick={handlePreviousUpload} className='primary-button upload-button'>
-              Last opp forrige periode
+              Upload previous period
             </button>
             <button
               type='button'
               onClick={handleUseDemoFilePrevious}
-              className='secondary-button upload-button'
+              className='secondary-button demo-button upload-button'
               disabled={status === 'loading'}
             >
-              Bruk demo-fil
+              Use demo file
             </button>
           </div>
           {previousUploadMessage && <p className='upload-status'>{previousUploadMessage}</p>}
           {previousFileInfo && (
             <p className='upload-info'>
-              Forrige periode: {previousFileInfo.rows} rader · {previousFileInfo.name}
+              Previous period: {previousFileInfo.rows} rows · {previousFileInfo.name}
             </p>
           )}
         </div>
@@ -1111,7 +1114,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
       {!hideAnalysis && !hasCurrentData && (
         <div className='card empty-state-card'>
           <h3>Ingen data lastet opp enda</h3>
-          <p>Last opp en Meta Ads-CSV øverst for å starte analysen.</p>
+          <p>Upload a Meta Ads CSV above to start the analysis.</p>
         </div>
       )}
       {!hideAnalysis && status === 'success' && (
@@ -1144,26 +1147,26 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
               <div className='controls-grid'>
                 <div className='filter-group'>
                   <label className='filter-label' htmlFor='scenarioTargetRoas'>
-                    Mål-ROAS (scenario) <InfoTooltip text={scenarioHelp} />
+                    Target ROAS (scenario) <InfoTooltip text={scenarioHelp} />
                   </label>
                   <input
                     id='scenarioTargetRoas'
                     type='text'
                     className='filter-input'
-                    placeholder='f.eks. 1.5'
+                    placeholder='e.g. 1.5'
                     value={scenarioTargetRoas}
                     onChange={(event) => setScenarioTargetRoas(event.target.value)}
                   />
                 </div>
                 <div className='filter-group'>
                   <label className='filter-label' htmlFor='scenarioMaxCpa'>
-                    Maks CPA (scenario) <InfoTooltip text={scenarioHelp} />
+                    Max CPA (scenario) <InfoTooltip text={scenarioHelp} />
                   </label>
                   <input
                     id='scenarioMaxCpa'
                     type='text'
                     className='filter-input'
-                    placeholder='f.eks. 800'
+                    placeholder='e.g. 800'
                     value={scenarioMaxCpa}
                     onChange={(event) => setScenarioMaxCpa(event.target.value)}
                   />
@@ -1176,18 +1179,18 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
                     className='filter-input'
                     value={minRoas}
                     onChange={handleNumericFilterChange(setMinRoas)}
-                    placeholder='f.eks. 2.0'
+                    placeholder='e.g. 2.0'
                   />
                 </div>
                 <div className='filter-group'>
-                  <label className='filter-label' htmlFor='maxCpaFilter'>Maks CPA</label>
+                  <label className='filter-label' htmlFor='maxCpaFilter'>Max CPA</label>
                   <input
                     id='maxCpaFilter'
                     type='number'
                     className='filter-input'
                     value={maxCpa}
                     onChange={handleNumericFilterChange(setMaxCpa)}
-                    placeholder='f.eks. 200'
+                    placeholder='e.g. 200'
                   />
                 </div>
                 <div className='filter-group'>
@@ -1198,7 +1201,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
                     className='filter-input'
                     value={minPurchases}
                     onChange={handleNumericFilterChange(setMinPurchases)}
-                    placeholder='f.eks. 5'
+                    placeholder='e.g. 5'
                   />
                 </div>
                 <div className='filter-group'>
@@ -1212,7 +1215,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
                       setSelectedMetric(null)
                     }}
                   >
-                    <option value=''>Alle</option>
+                    <option value=''>All</option>
                     <option value='Winner'>Winner</option>
                     <option value='Above average'>Above average</option>
                     <option value='Average'>Average</option>
@@ -1222,7 +1225,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
                 </div>
               </div>
               <p className='scenario-hint'>
-                Scenarioanalysen sammenligner dagens resultater mot målene over, uten å filtrere bort annonser.
+                The scenario analysis compares current results to the goals above without filtering out ads.
               </p>
             </div>
 
@@ -1230,9 +1233,9 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
               <div className='summary-card'>
                 <p style={{ margin: 0 }}>Total spend: {formatCurrency(metricsSummary.totalSpend)}</p>
                 <p style={{ margin: 0 }}>Total purchases: {metricsSummary.totalPurchases}</p>
-                <p style={{ margin: 0 }}>Snitt-ROAS: {metricsSummary.avgRoasText}</p>
+                <p style={{ margin: 0 }}>Avg ROAS: {metricsSummary.avgRoasText}</p>
                 <p style={{ margin: 0 }}>
-                  Snitt-CPA: {metricsSummary.avgCpa === null ? 'N/A' : formatCurrency(metricsSummary.avgCpa)}
+                  Avg CPA: {metricsSummary.avgCpa === null ? 'N/A' : formatCurrency(metricsSummary.avgCpa)}
                 </p>
               </div>
             )}
@@ -1241,7 +1244,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
               <div className='card period-summary-card'>
                 <div className='period-summary-content'>
                   <div className='period-block'>
-                    <p className='period-label'>Nåværende periode</p>
+                    <p className='period-label'>Current period</p>
                     <p className='period-value'>{formatCurrency(currentPeriodSummary.totalSpend)}</p>
                     {currentFileInfo && (
                       <p className='period-meta'>
@@ -1268,7 +1271,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
                     <div className='period-metric-row' key={metricInfo.key}>
                       <div className='period-metric-label'>{metricInfo.label}</div>
                       <div className='period-metric-value'>
-                        <span className='period-metric-title'>Nå</span>
+                        <span className='period-metric-title'>Now</span>
                         <span>{metricInfo.formatter(metricInfo.current)}</span>
                       </div>
                       {hasPreviousPeriod && (
@@ -1304,36 +1307,36 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
 
             {showAnalysis && scenario.enabled && (
               <div className='card scenario-card'>
-                <h3 className='card-title'>Scenarioanalyse</h3>
+                <h3 className='card-title'>Scenario analysis</h3>
                 <p className='scenario-subtitle'>
-                  Sammenligner filtrerte annonser mot mål-ROAS
-                  {scenarioRoasGoal !== null && ` på ${scenarioRoasGoal.toFixed(2)}`}
-                  {scenarioRoasGoal !== null && scenarioCpaGoal !== null && ' og '}
-                  {scenarioCpaGoal !== null && `maks CPA på ${formatCurrency(scenarioCpaGoal)}.`}
+                  Comparing filtered ads to target ROAS
+                  {scenarioRoasGoal !== null && ` at ${scenarioRoasGoal.toFixed(2)}`}
+                  {scenarioRoasGoal !== null && scenarioCpaGoal !== null && ' and '}
+                  {scenarioCpaGoal !== null && `max CPA ${formatCurrency(scenarioCpaGoal)}.`}
                 </p>
                 <ul className='scenario-list'>
                   <li>
                     {scenario.meetsBoth.length > 0
-                      ? `${scenario.meetsBoth.length} annonse(r)/ad set oppfyller begge målene og står for ${formatCurrency(
-                          scenario.totalSpendMeetsGoals,
-                        )} i spend.`
-                      : 'Ingen annonser oppfyller begge målene samtidig ennå.'}
+      ? `${scenario.meetsBoth.length} ad(s)/ad sets meet both goals and represent ${formatCurrency(
+          scenario.totalSpendMeetsGoals,
+        )} in spend.`
+      : 'No ads meet both goals yet.'}
                   </li>
                   {scenario.meetsRoasOnly.length > 0 && (
                     <li>
-                      {`${scenario.meetsRoasOnly.length} annonse(r)/ad set har ROAS over målet, men høyere CPA enn ønsket.`}
+                      {`${scenario.meetsRoasOnly.length} ad(s)/ad sets have ROAS above the target but higher CPA than desired.`}
                     </li>
                   )}
                   {scenario.meetsCpaOnly.length > 0 && (
                     <li>
-                      {`${scenario.meetsCpaOnly.length} annonse(r)/ad set har CPA under målet, men ROAS under målet.`}
+                      {`${scenario.meetsCpaOnly.length} ad(s)/ad sets have CPA under the target but ROAS below the target.`}
                     </li>
                   )}
                   {scenario.totalSpendMissesGoals > 0 && (
                     <li>
-                      {`Cirka ${formatCurrency(
+                      {`About ${formatCurrency(
                         scenario.totalSpendMissesGoals,
-                      )} i spend ligger under scenario-målene. Dette er kandidater for optimalisering eller nedskalering.`}
+                      )} in spend is below the scenario goals. These are candidates for optimization or downscaling.`}
                     </li>
                   )}
                 </ul>
@@ -1351,14 +1354,14 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
                   {insights.periodChangeInsights &&
                     insights.periodChangeInsights.map((text) => <li key={text}>{text}</li>)}
                   {!insights.hasInsight && (
-                    <li>Ingen spesielle funn akkurat nå. Juster filtrene for å se andre mønstre.</li>
+                    <li>No specific findings right now. Adjust filters to see other patterns.</li>
                   )}
                 </ul>
               </div>
             )}
           {showAnalysis && filteredMetrics.length === 0 && (
             <p className='no-results-message'>
-              Ingen rader matcher filtrene dine. Juster filterne og prøv igjen.
+              No rows match your filters. Adjust filters and try again.
             </p>
           )}
           {showAnalysis && filteredMetrics.length > 0 && (
@@ -1460,7 +1463,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
                                       }`}
                                     >
                                       {purchasesChange > 0 ? '+' : ''}
-                                      {purchasesChange.toLocaleString('nb-NO')} kjøp
+                                      {purchasesChange.toLocaleString('nb-NO')} purchases
                                     </span>
                                   )}
                                 </div>
@@ -1512,7 +1515,7 @@ const CsvUpload = ({ onDataStatusChange, hideAnalysis = false }) => {
                                       {metric.performanceScore} / 100
                                     </p>
                                     <p style={{ margin: '0.25rem 0', color: '#6b7280' }}>
-                                      Basert på ROAS, CPA og antall kjøp.
+                                      Based on ROAS, CPA, and number of purchases.
                                     </p>
                                     <p style={{ margin: '0.25rem 0' }}>
                                       <strong>Meta rating:</strong> {metric.metaRating}

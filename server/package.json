@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "blog:generate": "node blogAgent/generateAndPublish.js",
+    "blog:save": "BLOG_SAVE_LOCALLY=true node blogAgent/generateAndPublish.js"
   },
   "keywords": [],
   "author": "",
@@ -13,7 +15,10 @@
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "express": "^5.1.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2",
+    "openai": "^4.56.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

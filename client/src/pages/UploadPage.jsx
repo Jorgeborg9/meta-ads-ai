@@ -6,12 +6,12 @@ const UploadPage = () => {
   return (
     <AppShell activeTab="upload">
       <section className="card" style={{ marginBottom: '1.5rem' }}>
-        <h2 className="section-title">Systemstatus</h2>
+        <h2 className="section-title">System status</h2>
         <HealthCheck />
       </section>
 
       <section className="card">
-        <h2 className="section-title">Last opp Meta Ads-CSV</h2>
+        <h2 className="section-title">Upload Meta Ads CSV</h2>
         <CsvUpload hideAnalysis />
       </section>
     </AppShell>

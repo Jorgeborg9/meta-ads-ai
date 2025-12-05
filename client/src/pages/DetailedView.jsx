@@ -197,29 +197,29 @@ const DetailedView = () => {
     if (!selectedStats) return []
     const bullets = []
     if (selectedStats.bucket === 'Winner') {
-      bullets.push('Denne annonsen er klassifisert som en vinner blant kampanjens annonser.')
+      bullets.push('This ad is classified as a winner among the campaign ads.')
     }
     if (selectedStats.roasDiff != null) {
       if (selectedStats.roasDiff > 15) {
-        bullets.push('ROAS er høyere enn snittet for kampanjen.')
+        bullets.push('ROAS is higher than the campaign average.')
       } else if (selectedStats.roasDiff < -15) {
-        bullets.push('ROAS er lavere enn snittet. Resultatene ligger under de sterkeste annonsene.')
+        bullets.push('ROAS is below average; results trail the strongest ads.')
       }
     }
     if (selectedStats.ctrDiff != null) {
       if (selectedStats.ctrDiff > 10) {
-        bullets.push('CTR er høyere enn snittet, annonsen fanger oppmerksomhet godt.')
+        bullets.push('CTR is higher than average; the ad grabs attention well.')
       } else if (selectedStats.ctrDiff < -10) {
-        bullets.push('CTR er lavere enn snittet, den får mindre oppmerksomhet enn andre annonser.')
+        bullets.push('CTR is lower than average; it gets less attention than other ads.')
       }
     }
     if (selectedStats.ctrDiff != null && selectedStats.roasDiff != null) {
       if (selectedStats.ctrDiff > 5 && selectedStats.roasDiff < -5) {
-        bullets.push('CTR er over snittet, men ROAS er lavere. Utfordringen kan ligge etter klikk.')
+        bullets.push('CTR is above average but ROAS is lower; the challenge may be post-click.')
       }
     }
     if (!bullets.length) {
-      bullets.push('Ytelsen ligger i nærheten av kampanjesnittet på nøkkeltallene.')
+      bullets.push('Performance is close to the campaign average on key metrics.')
     }
     return bullets.slice(0, 4)
   }, [selectedStats])
@@ -228,12 +228,12 @@ const DetailedView = () => {
     if (!selectedStats) return []
     const bullets = []
     if (selectedStats.roasDiff != null && selectedStats.roasDiff < -10) {
-      bullets.push('Se nærmere på målgruppe eller tilbud dersom ROAS ligger under snittet.')
+      bullets.push('Review audience or offer if ROAS sits below average.')
     } else if (selectedStats.roasDiff != null && selectedStats.roasDiff > 10) {
-      bullets.push('Analyser hva som skiller denne annonsen fra andre med lavere ROAS for læring.')
+      bullets.push('Analyze what separates this ad from others with lower ROAS to learn and replicate.')
     }
     if (selectedStats.ctrDiff != null && selectedStats.ctrDiff < -10) {
-      bullets.push('Ved lav CTR kan det være relevant å teste variasjoner i budskap eller kreativt uttrykk.')
+      bullets.push('With low CTR, test variations in hooks, messaging, or creative expression.')
     }
     if (
       selectedStats.ctrDiff != null &&
@@ -241,13 +241,13 @@ const DetailedView = () => {
       selectedStats.roasDiff != null &&
       selectedStats.roasDiff < 0
     ) {
-      bullets.push('Når CTR er høy men ROAS er svakere, kan utfordringen ligge på landingssiden eller kjøpsflyten.')
+      bullets.push('If CTR is high but ROAS is weak, the issue may be on the landing page or purchase flow.')
     }
     if (selectedStats.bucket === 'Winner') {
-      bullets.push('For vinner-annonser kan det være nyttig å hente læring til nye varianter.')
+      bullets.push('For winner ads, extract learnings to fuel new variants.')
     }
     if (!bullets.length) {
-      bullets.push('Ytelsen er nær snittet. Følg med på utviklingen og vurder små justeringer ved behov.')
+      bullets.push('Performance is near average. Monitor trends and consider small adjustments as needed.')
     }
     return bullets.slice(0, 4)
   }, [selectedStats])
@@ -299,20 +299,20 @@ const DetailedView = () => {
     return (
       <AppShell activeTab="detailed" showTabs={false}>
         <div className="empty-state-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-          <h3>Ingen annonser lastet enda.</h3>
+          <h3>No ads loaded yet.</h3>
           <p style={{ margin: '0.25rem 0 1rem' }}>
-            Last opp en CSV-fil eller bruk demo-fil på hovedsiden.
+            Upload a CSV file or use the demo file on the homepage.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
             <button type="button" className="primary-button" onClick={() => navigate('/upload')}>
-              Gå til opplasting
+              Go to upload
             </button>
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button demo-button"
               onClick={() => navigate('/upload')}
             >
-              Bruk demo-fil på forsiden
+              Use demo file on the homepage
             </button>
           </div>
         </div>
@@ -327,7 +327,7 @@ const DetailedView = () => {
       <div className="top-grid">
         <div className="top-left">
           <div className="card selected-ad-card">
-            <p className="eyebrow">Totaloversikt</p>
+            <p className="eyebrow">Overview</p>
             <div className="kpi-row">
               <div className="kpi-chip">
                 <div className="kpi-value">{averageMetrics.totalSpend.toLocaleString('nb-NO')} kr</div>
@@ -335,32 +335,32 @@ const DetailedView = () => {
               </div>
               <div className="kpi-chip">
                 <div className="kpi-value">{averageMetrics.totalPurchases.toLocaleString('nb-NO')}</div>
-                <div className="kpi-label">Totale kjøp</div>
+                <div className="kpi-label">Total purchases</div>
               </div>
               <div className="kpi-chip">
                 <div className="kpi-value">{averageMetrics.avgRoas == null ? '—' : averageMetrics.avgRoas.toFixed(2)}</div>
-                <div className="kpi-label">ROAS snitt</div>
+                <div className="kpi-label">Avg ROAS</div>
               </div>
               <div className="kpi-chip">
                 <div className="kpi-value">{averageMetrics.avgCpa == null ? '—' : `${averageMetrics.avgCpa.toLocaleString('nb-NO')} kr`}</div>
-                <div className="kpi-label">CPA snitt</div>
+                <div className="kpi-label">Avg CPA</div>
               </div>
               <div className="kpi-chip">
                 <div className="kpi-value">{averageMetrics.avgCtr == null ? '—' : `${averageMetrics.avgCtr.toFixed(2)} %`}</div>
-                <div className="kpi-label">CTR snitt</div>
+                <div className="kpi-label">Avg CTR</div>
               </div>
             </div>
             {ads.length > 0 && (
-              <p className="kpi-footnote">Basert på {ads.length} annonser i kampanjen.</p>
+              <p className="kpi-footnote">Based on {ads.length} ads in the campaign.</p>
             )}
           </div>
 
           <div className="card grouped-card">
-            <p className="eyebrow">Vinnere</p>
-            <p className="muted group-sub">Annonsene som ligger tydelig over snittet.</p>
+            <p className="eyebrow">Winners</p>
+            <p className="muted group-sub">Ads that clearly outperform the average.</p>
             <div className="group-list">
               {groupedAds.winners.slice(0, expandedGroups.winners ? 5 : 2).map((ad, idx) => {
-                const name = ad.adName || 'Ukjent annonse'
+                const name = ad.adName || 'Unknown ad'
                 const roas = ad.roas === null || ad.roas === undefined ? '—' : ad.roas.toFixed(2)
                 return (
                   <div
@@ -382,18 +382,18 @@ const DetailedView = () => {
                         handleSelectAdFromGroup(ad)
                       }}
                     >
-                      Se annonse
+                      View ad
                     </button>
                   </div>
                 )
               })}
               {groupedAds.winners.length > (expandedGroups.winners ? 5 : 2) && (
                 <div className="group-row more-row">
-                  … og {groupedAds.winners.length - (expandedGroups.winners ? 5 : 2)} flere annonser
+                  … and {groupedAds.winners.length - (expandedGroups.winners ? 5 : 2)} more ads
                 </div>
               )}
               {!groupedAds.winners.length && (
-                <div className="group-row muted">Ingen annonser i denne gruppen enda.</div>
+                <div className="group-row muted">No ads in this group yet.</div>
               )}
             </div>
             {groupedAds.winners.length > 2 && (
@@ -402,17 +402,17 @@ const DetailedView = () => {
                 className="secondary-button thin small toggle-btn"
                 onClick={() => toggleGroup('winners')}
               >
-                {expandedGroups.winners ? 'Vis mindre' : 'Vis mer'}
+                {expandedGroups.winners ? 'Show less' : 'Show more'}
               </button>
             )}
           </div>
 
           <div className="card grouped-card">
-            <p className="eyebrow">Stødige annonser</p>
-            <p className="muted group-sub">Ligger rundt kampanjesnittet.</p>
+            <p className="eyebrow">Steady ads</p>
+            <p className="muted group-sub">Perform around the campaign average.</p>
             <div className="group-list">
               {groupedAds.steady.slice(0, expandedGroups.steady ? 5 : 2).map((ad, idx) => {
-                const name = ad.adName || 'Ukjent annonse'
+                const name = ad.adName || 'Unknown ad'
                 const roas = ad.roas === null || ad.roas === undefined ? '—' : ad.roas.toFixed(2)
                 return (
                   <div
@@ -434,18 +434,18 @@ const DetailedView = () => {
                         handleSelectAdFromGroup(ad)
                       }}
                     >
-                      Se annonse
+                      View ad
                     </button>
                   </div>
                 )
               })}
               {groupedAds.steady.length > (expandedGroups.steady ? 5 : 2) && (
                 <div className="group-row more-row">
-                  … og {groupedAds.steady.length - (expandedGroups.steady ? 5 : 2)} flere annonser
+                  … and {groupedAds.steady.length - (expandedGroups.steady ? 5 : 2)} more ads
                 </div>
               )}
               {!groupedAds.steady.length && (
-                <div className="group-row muted">Ingen annonser i denne gruppen enda.</div>
+                <div className="group-row muted">No ads in this group yet.</div>
               )}
             </div>
             {groupedAds.steady.length > 2 && (
@@ -454,17 +454,17 @@ const DetailedView = () => {
                 className="secondary-button thin small toggle-btn"
                 onClick={() => toggleGroup('steady')}
               >
-                {expandedGroups.steady ? 'Vis mindre' : 'Vis mer'}
+                {expandedGroups.steady ? 'Show less' : 'Show more'}
               </button>
             )}
           </div>
 
           <div className="card grouped-card">
-            <p className="eyebrow">Annonser som bør vurderes</p>
-            <p className="muted group-sub">Ligger klart under snittet på ROAS/CPA.</p>
+            <p className="eyebrow">Ads to review</p>
+            <p className="muted group-sub">Clearly below average on ROAS/CPA.</p>
             <div className="group-list">
               {groupedAds.needsCare.slice(0, expandedGroups.needsCare ? 5 : 2).map((ad, idx) => {
-                const name = ad.adName || 'Ukjent annonse'
+                const name = ad.adName || 'Unknown ad'
                 const roas = ad.roas === null || ad.roas === undefined ? '—' : ad.roas.toFixed(2)
                 return (
                   <div
@@ -486,18 +486,18 @@ const DetailedView = () => {
                         handleSelectAdFromGroup(ad)
                       }}
                     >
-                      Se annonse
+                      View ad
                     </button>
                   </div>
                 )
               })}
               {groupedAds.needsCare.length > (expandedGroups.needsCare ? 5 : 2) && (
                 <div className="group-row more-row">
-                  … og {groupedAds.needsCare.length - (expandedGroups.needsCare ? 5 : 2)} flere annonser
+                  … and {groupedAds.needsCare.length - (expandedGroups.needsCare ? 5 : 2)} more ads
                 </div>
               )}
               {!groupedAds.needsCare.length && (
-                <div className="group-row muted">Ingen annonser i denne gruppen enda.</div>
+                <div className="group-row muted">No ads in this group yet.</div>
               )}
             </div>
             {groupedAds.needsCare.length > 2 && (
@@ -506,7 +506,7 @@ const DetailedView = () => {
                 className="secondary-button thin small toggle-btn"
                 onClick={() => toggleGroup('needsCare')}
               >
-                {expandedGroups.needsCare ? 'Vis mindre' : 'Vis mer'}
+                {expandedGroups.needsCare ? 'Show less' : 'Show more'}
               </button>
             )}
           </div>
@@ -517,7 +517,7 @@ const DetailedView = () => {
             <div className="card creative-card detail-card">
               <div className="creative-card-header">
                 <p className="eyebrow">Creative Preview</p>
-                <h3>{selectedAd.adName || 'Ukjent annonse'}</h3>
+                <h3>{selectedAd.adName || 'Unknown ad'}</h3>
               </div>
               <div className="creative-preview">Creative Preview</div>
             </div>
@@ -525,17 +525,17 @@ const DetailedView = () => {
 
           {selectedAd && (
             <div className="card selected-ad-card detail-card">
-              <p className="eyebrow">Detaljer for annonse</p>
+              <p className="eyebrow">Ad details</p>
               <div className="flex between" style={{ gap: '0.5rem', alignItems: 'center' }}>
                 <div style={{ minWidth: 0 }}>
-                  <h3 className="ad-truncate" title={selectedAd.adName || 'Ukjent annonse'}>
-                    {selectedAd.adName || 'Ukjent annonse'}
+                  <h3 className="ad-truncate" title={selectedAd.adName || 'Unknown ad'}>
+                    {selectedAd.adName || 'Unknown ad'}
                   </h3>
                   <p
                     className="muted ad-truncate"
-                    title={selectedAd.adSetName || selectedAd.adSet || 'Ukjent ad set'}
+                    title={selectedAd.adSetName || selectedAd.adSet || 'Unknown ad set'}
                   >
-                    {selectedAd.adSetName || selectedAd.adSet || 'Ukjent ad set'}
+                    {selectedAd.adSetName || selectedAd.adSet || 'Unknown ad set'}
                   </p>
                 </div>
                 <span className={`badge ${ratingColor[getPerformanceBucket(selectedAd)] || ''}`}>
@@ -575,20 +575,20 @@ const DetailedView = () => {
               {selectedStats && (
                 <p className="muted limited-text" style={{ marginTop: '1rem' }}>
                   {selectedStats.roasDiff != null && selectedStats.roasDiff > 5
-                    ? 'ROAS er høyere enn kampanjesnittet.'
+                    ? 'ROAS is higher than the campaign average.'
                     : selectedStats.roasDiff != null && selectedStats.roasDiff < -5
-                    ? 'ROAS er lavere enn snittet for kampanjen.'
-                    : 'ROAS ligger omtrent på snittet.'}{' '}
+                    ? 'ROAS is lower than the campaign average.'
+                    : 'ROAS is roughly on par with the average.'}{' '}
                   {selectedStats.cpaDiff != null && selectedStats.cpaDiff > 5
-                    ? 'CPA er høyere enn snittet.'
+                    ? 'CPA is higher than the average.'
                     : selectedStats.cpaDiff != null && selectedStats.cpaDiff < -5
-                    ? 'CPA er lavere enn snittet.'
-                    : 'CPA er nær snittet.'}{' '}
+                    ? 'CPA is lower than the average.'
+                    : 'CPA is near the average.'}{' '}
                   {selectedStats.ctrDiff != null && selectedStats.ctrDiff > 5
-                    ? 'CTR er høyere enn snittet.'
+                    ? 'CTR is higher than the average.'
                     : selectedStats.ctrDiff != null && selectedStats.ctrDiff < -5
-                    ? 'CTR er lavere enn snittet.'
-                    : 'CTR er nær snittet.'}
+                    ? 'CTR is lower than the average.'
+                    : 'CTR is near the average.'}
                 </p>
               )}
             </div>
@@ -665,8 +665,8 @@ const DetailedView = () => {
                 >
                   <div className="table-cell name-cell">
                     <div className="ad-thumb small" />
-                    <div className="name-meta" title={ad.adName || 'Ukjent annonse'}>
-                      <span className="ad-name ad-truncate">{ad.adName || 'Ukjent annonse'}</span>
+                    <div className="name-meta" title={ad.adName || 'Unknown ad'}>
+                      <span className="ad-name ad-truncate">{ad.adName || 'Unknown ad'}</span>
                     </div>
                   </div>
                   <div className="table-cell center">
@@ -674,7 +674,7 @@ const DetailedView = () => {
                   </div>
                   <div className="table-cell center">
                     <button type="button" className="secondary-button thin">
-                      Se tiltak
+                      View actions
                     </button>
                   </div>
                   <div className="table-cell right">{purchases}</div>
